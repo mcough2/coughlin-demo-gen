@@ -32,6 +32,16 @@ export default function Home() {
     }
     setSelectedDemoType(type)
     setError('')
+    setGenerationResult(null)
+    setRatesResult(null)
+    
+    // Scroll to next steps section after a short delay
+    setTimeout(() => {
+      const nextStepsElement = document.getElementById('next-steps-section')
+      if (nextStepsElement) {
+        nextStepsElement.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }
+    }, 100)
   }
 
   return (
@@ -216,6 +226,18 @@ export default function Home() {
               opacity: apiKey.trim() ? 1 : 0.6,
               boxShadow: selectedDemoType === 'infra-saas' ? '0 4px 12px rgba(109, 198, 75, 0.2)' : '0 2px 8px rgba(0,0,0,0.05)',
             }}
+            onMouseEnter={(e) => {
+              if (apiKey.trim() && !loading && selectedDemoType !== 'infra-saas') {
+                e.currentTarget.style.backgroundColor = '#F0F8F0'
+                e.currentTarget.style.borderColor = '#A6D96A'
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (selectedDemoType !== 'infra-saas') {
+                e.currentTarget.style.backgroundColor = '#FFFFFF'
+                e.currentTarget.style.borderColor = '#E0E0E0'
+              }
+            }}
           >
             <div style={{
               fontSize: '1.5rem',
@@ -243,8 +265,9 @@ export default function Home() {
                 fontSize: '0.85rem',
                 textAlign: 'center',
                 fontWeight: '600',
+                pointerEvents: 'none',
               }}>
-                Selected
+                ✓ Selected
               </div>
             )}
           </button>
@@ -317,15 +340,19 @@ export default function Home() {
 
       {/* Next Steps (when demo type is selected) */}
       {selectedDemoType && (
-        <div style={{
-          marginTop: '2rem',
-          padding: '1.5rem',
-          backgroundColor: '#DFF0D8',
-          borderRadius: '12px',
-          width: '100%',
-          maxWidth: '800px',
-          border: '2px solid #6DC64B',
-        }}>
+        <div 
+          id="next-steps-section"
+          style={{
+            marginTop: '2rem',
+            padding: '1.5rem',
+            backgroundColor: '#DFF0D8',
+            borderRadius: '12px',
+            width: '100%',
+            maxWidth: '800px',
+            border: '2px solid #6DC64B',
+            animation: 'fadeIn 0.3s ease-in',
+          }}
+        >
           <h3 style={{
             fontSize: '1.2rem',
             marginBottom: '1rem',
