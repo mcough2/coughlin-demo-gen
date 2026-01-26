@@ -9,6 +9,7 @@ export default function Home() {
   const [selectedDemoType, setSelectedDemoType] = useState<DemoType>(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [generationResult, setGenerationResult] = useState<any>(null)
 
   const handleApiKeySubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -326,19 +327,104 @@ export default function Home() {
             marginBottom: '1rem',
             color: '#1C1C1C',
           }}>
-            Next Steps
+            {selectedDemoType === 'infra-saas' ? 'Generate Infra SaaS Demo' : 'Next Steps'}
           </h3>
-          <p style={{
-            color: '#1C1C1C',
-            lineHeight: '1.6',
-            opacity: 0.8,
-          }}>
-            {selectedDemoType === 'ai-token'
-              ? 'AI Token Based demo configuration will be available here. You can set up customers, products, and usage events for token-based billing.'
-              : selectedDemoType === 'infra-saas'
-              ? 'Infra SaaS demo configuration will be available here. You can set up customers, products, and usage events for infrastructure-based billing.'
-              : 'Hybrid Seat+ Usage demo configuration will be available here. You can set up customers, products, and usage events combining seat-based and usage-based billing.'}
-          </p>
+          
+          {selectedDemoType === 'infra-saas' ? (
+            <div>
+              <p style={{
+                color: '#1C1C1C',
+                lineHeight: '1.6',
+                opacity: 0.8,
+                marginBottom: '1.5rem',
+              }}>
+                This will create billable metrics, products, and rate cards for an infrastructure SaaS demo similar to Confluent.
+              </p>
+              <button
+                onClick={async () => {
+                  setLoading(true)
+                  setError('')
+                  setGenerationResult(null)
+                  
+                  try {
+                    const res = await fetch('/api/infra-saas/generate', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                      },
+                      body: JSON.stringify({ apiKey }),
+                    })
+                    
+                    const data = await res.json()
+                    
+                    if (!res.ok) {
+                      throw new Error(data.error || 'Failed to generate demo')
+                    }
+                    
+                    setGenerationResult(data)
+                  } catch (err) {
+                    setError(err instanceof Error ? err.message : 'An error occurred')
+                  } finally {
+                    setLoading(false)
+                  }
+                }}
+                disabled={loading || !apiKey.trim()}
+                style={{
+                  padding: '0.75rem 1.5rem',
+                  fontSize: '1rem',
+                  backgroundColor: loading ? '#A6D96A' : '#6DC64B',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: loading || !apiKey.trim() ? 'not-allowed' : 'pointer',
+                  fontWeight: '600',
+                  transition: 'background-color 0.2s',
+                }}
+              >
+                {loading ? 'Generating...' : 'Generate Demo Objects'}
+              </button>
+              
+              {generationResult && (
+                <div style={{
+                  marginTop: '1.5rem',
+                  padding: '1rem',
+                  backgroundColor: generationResult.success ? '#DFF0D8' : '#FFE5E5',
+                  borderRadius: '8px',
+                  border: `1px solid ${generationResult.success ? '#6DC64B' : '#FFB3B3'}`,
+                }}>
+                  <div style={{
+                    fontSize: '0.9rem',
+                    color: '#1C1C1C',
+                    marginBottom: '0.5rem',
+                    fontWeight: '600',
+                  }}>
+                    {generationResult.success ? '✓ Success!' : '⚠ Partial Success'}
+                  </div>
+                  <div style={{
+                    fontSize: '0.85rem',
+                    color: '#1C1C1C',
+                    opacity: 0.8,
+                    whiteSpace: 'pre-wrap',
+                    fontFamily: 'monospace',
+                    maxHeight: '300px',
+                    overflow: 'auto',
+                  }}>
+                    {JSON.stringify(generationResult.results, null, 2)}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <p style={{
+              color: '#1C1C1C',
+              lineHeight: '1.6',
+              opacity: 0.8,
+            }}>
+              {selectedDemoType === 'ai-token'
+                ? 'AI Token Based demo configuration will be available here. You can set up customers, products, and usage events for token-based billing.'
+                : 'Hybrid Seat+ Usage demo configuration will be available here. You can set up customers, products, and usage events combining seat-based and usage-based billing.'}
+            </p>
+          )}
         </div>
       )}
     </main>
