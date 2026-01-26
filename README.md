@@ -1,8 +1,9 @@
 # Metronome Demo Generator
 
-A local webapp to generate demos on Metronome. Supports two demo types:
+A local webapp to generate demos on Metronome. Supports three demo types:
 - **AI Token Based** (like OpenAI) - Token-based billing for AI/ML services
 - **Infra SaaS** (like Confluent) - Infrastructure SaaS billing model
+- **Hybrid Seat+ Usage** (like Notion) - Combines seat-based pricing with usage-based charges
 
 ## Getting Started
 

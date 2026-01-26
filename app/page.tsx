@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 
-type DemoType = 'ai-token' | 'infra-saas' | null
+type DemoType = 'ai-token' | 'infra-saas' | 'hybrid-seat' | null
 
 export default function Home() {
   const [apiKey, setApiKey] = useState('')
@@ -137,7 +137,7 @@ export default function Home() {
         </h2>
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
           gap: '1.5rem',
         }}>
           {/* AI Token Based Demo */}
@@ -233,6 +233,53 @@ export default function Home() {
               </div>
             )}
           </button>
+
+          {/* Hybrid Seat+ Usage Demo */}
+          <button
+            onClick={() => handleDemoTypeSelect('hybrid-seat')}
+            disabled={!apiKey.trim() || loading}
+            style={{
+              padding: '2rem',
+              backgroundColor: selectedDemoType === 'hybrid-seat' ? '#e8f4f8' : '#fff',
+              border: `3px solid ${selectedDemoType === 'hybrid-seat' ? '#0066cc' : '#ddd'}`,
+              borderRadius: '12px',
+              cursor: apiKey.trim() && !loading ? 'pointer' : 'not-allowed',
+              textAlign: 'left',
+              transition: 'all 0.2s',
+              opacity: apiKey.trim() ? 1 : 0.6,
+              boxShadow: selectedDemoType === 'hybrid-seat' ? '0 4px 12px rgba(0,102,204,0.2)' : '0 2px 8px rgba(0,0,0,0.1)',
+            }}
+          >
+            <div style={{
+              fontSize: '1.5rem',
+              marginBottom: '0.5rem',
+              fontWeight: '600',
+              color: '#333',
+            }}>
+              👥 Hybrid Seat+ Usage
+            </div>
+            <div style={{
+              fontSize: '0.95rem',
+              color: '#666',
+              lineHeight: '1.5',
+            }}>
+              Generate a demo similar to Notion's hybrid billing model. Combines seat-based pricing with usage-based charges for a comprehensive billing solution.
+            </div>
+            {selectedDemoType === 'hybrid-seat' && (
+              <div style={{
+                marginTop: '1rem',
+                padding: '0.5rem',
+                backgroundColor: '#0066cc',
+                color: '#fff',
+                borderRadius: '6px',
+                fontSize: '0.85rem',
+                textAlign: 'center',
+                fontWeight: '600',
+              }}>
+                Selected
+              </div>
+            )}
+          </button>
         </div>
       </div>
 
@@ -274,7 +321,9 @@ export default function Home() {
           }}>
             {selectedDemoType === 'ai-token'
               ? 'AI Token Based demo configuration will be available here. You can set up customers, products, and usage events for token-based billing.'
-              : 'Infra SaaS demo configuration will be available here. You can set up customers, products, and usage events for infrastructure-based billing.'}
+              : selectedDemoType === 'infra-saas'
+              ? 'Infra SaaS demo configuration will be available here. You can set up customers, products, and usage events for infrastructure-based billing.'
+              : 'Hybrid Seat+ Usage demo configuration will be available here. You can set up customers, products, and usage events combining seat-based and usage-based billing.'}
           </p>
         </div>
       )}
