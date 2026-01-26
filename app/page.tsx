@@ -44,15 +44,16 @@ export default function Home() {
         fontSize: '2.5rem',
         marginBottom: '0.5rem',
         textAlign: 'center',
-        color: '#1a1a1a',
+        color: '#1C1C1C',
       }}>
         Metronome Demo Generator
       </h1>
       <p style={{
         marginBottom: '3rem',
-        color: '#666',
+        color: '#1C1C1C',
         textAlign: 'center',
         fontSize: '1.1rem',
+        opacity: 0.7,
       }}>
         Generate demos for your Metronome account
       </p>
@@ -63,14 +64,15 @@ export default function Home() {
         maxWidth: '600px',
         marginBottom: '3rem',
         padding: '2rem',
-        backgroundColor: '#fff',
+        backgroundColor: '#FFFFFF',
         borderRadius: '12px',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+        border: '1px solid #E0E0E0',
       }}>
         <h2 style={{
           fontSize: '1.5rem',
           marginBottom: '1rem',
-          color: '#333',
+          color: '#1C1C1C',
         }}>
           Step 1: Enter Your API Key
         </h2>
@@ -87,10 +89,12 @@ export default function Home() {
               width: '100%',
               padding: '0.75rem',
               fontSize: '1rem',
-              border: '2px solid #ddd',
+              border: '2px solid #E0E0E0',
               borderRadius: '8px',
               fontFamily: 'inherit',
               marginBottom: '0.5rem',
+              backgroundColor: '#FFFFFF',
+              color: '#1C1C1C',
             }}
           />
           <button
@@ -99,13 +103,16 @@ export default function Home() {
               width: '100%',
               padding: '0.75rem',
               fontSize: '1rem',
-              backgroundColor: '#000',
-              color: '#fff',
+              backgroundColor: '#6DC64B',
+              color: '#FFFFFF',
               border: 'none',
               borderRadius: '8px',
               cursor: 'pointer',
               fontWeight: '600',
+              transition: 'background-color 0.2s',
             }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#5AB83A'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#6DC64B'}
           >
             Save API Key
           </button>
@@ -114,8 +121,9 @@ export default function Home() {
           <p style={{
             marginTop: '0.5rem',
             fontSize: '0.85rem',
-            color: '#666',
+            color: '#6DC64B',
             fontStyle: 'italic',
+            fontWeight: '500',
           }}>
             ✓ API key saved
           </p>
@@ -131,7 +139,7 @@ export default function Home() {
           fontSize: '1.5rem',
           marginBottom: '1.5rem',
           textAlign: 'center',
-          color: '#333',
+          color: '#1C1C1C',
         }}>
           Step 2: Select Demo Type
         </h2>
@@ -146,28 +154,29 @@ export default function Home() {
             disabled={!apiKey.trim() || loading}
             style={{
               padding: '2rem',
-              backgroundColor: selectedDemoType === 'ai-token' ? '#e8f4f8' : '#fff',
-              border: `3px solid ${selectedDemoType === 'ai-token' ? '#0066cc' : '#ddd'}`,
+              backgroundColor: selectedDemoType === 'ai-token' ? '#DFF0D8' : '#FFFFFF',
+              border: `3px solid ${selectedDemoType === 'ai-token' ? '#6DC64B' : '#E0E0E0'}`,
               borderRadius: '12px',
               cursor: apiKey.trim() && !loading ? 'pointer' : 'not-allowed',
               textAlign: 'left',
               transition: 'all 0.2s',
               opacity: apiKey.trim() ? 1 : 0.6,
-              boxShadow: selectedDemoType === 'ai-token' ? '0 4px 12px rgba(0,102,204,0.2)' : '0 2px 8px rgba(0,0,0,0.1)',
+              boxShadow: selectedDemoType === 'ai-token' ? '0 4px 12px rgba(109, 198, 75, 0.2)' : '0 2px 8px rgba(0,0,0,0.05)',
             }}
           >
             <div style={{
               fontSize: '1.5rem',
               marginBottom: '0.5rem',
               fontWeight: '600',
-              color: '#333',
+              color: '#1C1C1C',
             }}>
               🤖 AI Token Based
             </div>
             <div style={{
               fontSize: '0.95rem',
-              color: '#666',
+              color: '#1C1C1C',
               lineHeight: '1.5',
+              opacity: 0.7,
             }}>
               Generate a demo similar to OpenAI's token-based billing model. Perfect for AI/ML services that charge based on token usage.
             </div>
@@ -175,8 +184,8 @@ export default function Home() {
               <div style={{
                 marginTop: '1rem',
                 padding: '0.5rem',
-                backgroundColor: '#0066cc',
-                color: '#fff',
+                backgroundColor: '#6DC64B',
+                color: '#FFFFFF',
                 borderRadius: '6px',
                 fontSize: '0.85rem',
                 textAlign: 'center',
@@ -193,28 +202,29 @@ export default function Home() {
             disabled={!apiKey.trim() || loading}
             style={{
               padding: '2rem',
-              backgroundColor: selectedDemoType === 'infra-saas' ? '#e8f4f8' : '#fff',
-              border: `3px solid ${selectedDemoType === 'infra-saas' ? '#0066cc' : '#ddd'}`,
+              backgroundColor: selectedDemoType === 'infra-saas' ? '#DFF0D8' : '#FFFFFF',
+              border: `3px solid ${selectedDemoType === 'infra-saas' ? '#6DC64B' : '#E0E0E0'}`,
               borderRadius: '12px',
               cursor: apiKey.trim() && !loading ? 'pointer' : 'not-allowed',
               textAlign: 'left',
               transition: 'all 0.2s',
               opacity: apiKey.trim() ? 1 : 0.6,
-              boxShadow: selectedDemoType === 'infra-saas' ? '0 4px 12px rgba(0,102,204,0.2)' : '0 2px 8px rgba(0,0,0,0.1)',
+              boxShadow: selectedDemoType === 'infra-saas' ? '0 4px 12px rgba(109, 198, 75, 0.2)' : '0 2px 8px rgba(0,0,0,0.05)',
             }}
           >
             <div style={{
               fontSize: '1.5rem',
               marginBottom: '0.5rem',
               fontWeight: '600',
-              color: '#333',
+              color: '#1C1C1C',
             }}>
               🏗️ Infra SaaS
             </div>
             <div style={{
               fontSize: '0.95rem',
-              color: '#666',
+              color: '#1C1C1C',
               lineHeight: '1.5',
+              opacity: 0.7,
             }}>
               Generate a demo similar to Confluent's infrastructure SaaS billing model. Perfect for infrastructure services with usage-based pricing.
             </div>
@@ -222,8 +232,8 @@ export default function Home() {
               <div style={{
                 marginTop: '1rem',
                 padding: '0.5rem',
-                backgroundColor: '#0066cc',
-                color: '#fff',
+                backgroundColor: '#6DC64B',
+                color: '#FFFFFF',
                 borderRadius: '6px',
                 fontSize: '0.85rem',
                 textAlign: 'center',
@@ -240,28 +250,29 @@ export default function Home() {
             disabled={!apiKey.trim() || loading}
             style={{
               padding: '2rem',
-              backgroundColor: selectedDemoType === 'hybrid-seat' ? '#e8f4f8' : '#fff',
-              border: `3px solid ${selectedDemoType === 'hybrid-seat' ? '#0066cc' : '#ddd'}`,
+              backgroundColor: selectedDemoType === 'hybrid-seat' ? '#DFF0D8' : '#FFFFFF',
+              border: `3px solid ${selectedDemoType === 'hybrid-seat' ? '#6DC64B' : '#E0E0E0'}`,
               borderRadius: '12px',
               cursor: apiKey.trim() && !loading ? 'pointer' : 'not-allowed',
               textAlign: 'left',
               transition: 'all 0.2s',
               opacity: apiKey.trim() ? 1 : 0.6,
-              boxShadow: selectedDemoType === 'hybrid-seat' ? '0 4px 12px rgba(0,102,204,0.2)' : '0 2px 8px rgba(0,0,0,0.1)',
+              boxShadow: selectedDemoType === 'hybrid-seat' ? '0 4px 12px rgba(109, 198, 75, 0.2)' : '0 2px 8px rgba(0,0,0,0.05)',
             }}
           >
             <div style={{
               fontSize: '1.5rem',
               marginBottom: '0.5rem',
               fontWeight: '600',
-              color: '#333',
+              color: '#1C1C1C',
             }}>
               👥 Hybrid Seat+ Usage
             </div>
             <div style={{
               fontSize: '0.95rem',
-              color: '#666',
+              color: '#1C1C1C',
               lineHeight: '1.5',
+              opacity: 0.7,
             }}>
               Generate a demo similar to Notion's hybrid billing model. Combines seat-based pricing with usage-based charges for a comprehensive billing solution.
             </div>
@@ -269,8 +280,8 @@ export default function Home() {
               <div style={{
                 marginTop: '1rem',
                 padding: '0.5rem',
-                backgroundColor: '#0066cc',
-                color: '#fff',
+                backgroundColor: '#6DC64B',
+                color: '#FFFFFF',
                 borderRadius: '6px',
                 fontSize: '0.85rem',
                 textAlign: 'center',
@@ -288,11 +299,12 @@ export default function Home() {
         <div style={{
           marginTop: '2rem',
           padding: '1rem',
-          backgroundColor: '#fee',
-          color: '#c00',
+          backgroundColor: '#FFE5E5',
+          color: '#C00',
           borderRadius: '8px',
           width: '100%',
           maxWidth: '600px',
+          border: '1px solid #FFB3B3',
         }}>
           <strong>Error:</strong> {error}
         </div>
@@ -303,21 +315,23 @@ export default function Home() {
         <div style={{
           marginTop: '2rem',
           padding: '1.5rem',
-          backgroundColor: '#e8f4f8',
+          backgroundColor: '#DFF0D8',
           borderRadius: '12px',
           width: '100%',
           maxWidth: '800px',
+          border: '2px solid #6DC64B',
         }}>
           <h3 style={{
             fontSize: '1.2rem',
             marginBottom: '1rem',
-            color: '#333',
+            color: '#1C1C1C',
           }}>
             Next Steps
           </h3>
           <p style={{
-            color: '#666',
+            color: '#1C1C1C',
             lineHeight: '1.6',
+            opacity: 0.8,
           }}>
             {selectedDemoType === 'ai-token'
               ? 'AI Token Based demo configuration will be available here. You can set up customers, products, and usage events for token-based billing.'
