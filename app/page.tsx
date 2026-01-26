@@ -10,6 +10,10 @@ export default function Home() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [generationResult, setGenerationResult] = useState<any>(null)
+  const [csvFile, setCsvFile] = useState<File | null>(null)
+  const [rateCardName, setRateCardName] = useState('')
+  const [defaultEffectiveAt, setDefaultEffectiveAt] = useState('')
+  const [ratesResult, setRatesResult] = useState<any>(null)
 
   const handleApiKeySubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -413,6 +417,206 @@ export default function Home() {
                   </div>
                 </div>
               )}
+
+              {/* Add Rates Section */}
+              <div style={{
+                marginTop: '2rem',
+                padding: '1.5rem',
+                backgroundColor: '#FFFFFF',
+                borderRadius: '8px',
+                border: '1px solid #E0E0E0',
+              }}>
+                <h4 style={{
+                  fontSize: '1rem',
+                  marginBottom: '1rem',
+                  color: '#1C1C1C',
+                  fontWeight: '600',
+                }}>
+                  Add Rates from CSV
+                </h4>
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '1rem',
+                }}>
+                  <div>
+                    <label style={{
+                      display: 'block',
+                      marginBottom: '0.5rem',
+                      fontSize: '0.9rem',
+                      color: '#1C1C1C',
+                      fontWeight: '500',
+                    }}>
+                      Rate Card Name:
+                    </label>
+                    <input
+                      type="text"
+                      value={rateCardName}
+                      onChange={(e) => setRateCardName(e.target.value)}
+                      placeholder="e.g., Growth or Enterprise"
+                      style={{
+                        width: '100%',
+                        padding: '0.75rem',
+                        fontSize: '1rem',
+                        border: '2px solid #E0E0E0',
+                        borderRadius: '8px',
+                        fontFamily: 'inherit',
+                        backgroundColor: '#FFFFFF',
+                        color: '#1C1C1C',
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{
+                      display: 'block',
+                      marginBottom: '0.5rem',
+                      fontSize: '0.9rem',
+                      color: '#1C1C1C',
+                      fontWeight: '500',
+                    }}>
+                      Default Effective Date (optional):
+                    </label>
+                    <input
+                      type="datetime-local"
+                      value={defaultEffectiveAt}
+                      onChange={(e) => setDefaultEffectiveAt(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '0.75rem',
+                        fontSize: '1rem',
+                        border: '2px solid #E0E0E0',
+                        borderRadius: '8px',
+                        fontFamily: 'inherit',
+                        backgroundColor: '#FFFFFF',
+                        color: '#1C1C1C',
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{
+                      display: 'block',
+                      marginBottom: '0.5rem',
+                      fontSize: '0.9rem',
+                      color: '#1C1C1C',
+                      fontWeight: '500',
+                    }}>
+                      CSV File:
+                    </label>
+                    <input
+                      type="file"
+                      accept=".csv"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0]
+                        if (file) {
+                          setCsvFile(file)
+                        }
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '0.75rem',
+                        fontSize: '1rem',
+                        border: '2px solid #E0E0E0',
+                        borderRadius: '8px',
+                        fontFamily: 'inherit',
+                        backgroundColor: '#FFFFFF',
+                        color: '#1C1C1C',
+                      }}
+                    />
+                  </div>
+                  <button
+                    onClick={async () => {
+                      if (!csvFile || !rateCardName) {
+                        setError('Please provide both CSV file and rate card name')
+                        return
+                      }
+
+                      setLoading(true)
+                      setError('')
+                      setRatesResult(null)
+
+                      try {
+                        const formData = new FormData()
+                        formData.append('apiKey', apiKey)
+                        formData.append('csvFile', csvFile)
+                        formData.append('rateCardName', rateCardName)
+                        if (defaultEffectiveAt) {
+                          // Convert datetime-local to ISO string
+                          const date = new Date(defaultEffectiveAt)
+                          formData.append('defaultEffectiveAt', date.toISOString())
+                        }
+
+                        const res = await fetch('/api/rate-cards/add-rates', {
+                          method: 'POST',
+                          body: formData,
+                        })
+
+                        const data = await res.json()
+
+                        if (!res.ok) {
+                          throw new Error(data.error || 'Failed to add rates')
+                        }
+
+                        setRatesResult(data)
+                      } catch (err) {
+                        setError(err instanceof Error ? err.message : 'An error occurred')
+                      } finally {
+                        setLoading(false)
+                      }
+                    }}
+                    disabled={loading || !csvFile || !rateCardName || !apiKey.trim()}
+                    style={{
+                      padding: '0.75rem 1.5rem',
+                      fontSize: '1rem',
+                      backgroundColor: loading ? '#A6D96A' : '#6DC64B',
+                      color: '#FFFFFF',
+                      border: 'none',
+                      borderRadius: '8px',
+                      cursor: loading || !csvFile || !rateCardName || !apiKey.trim() ? 'not-allowed' : 'pointer',
+                      fontWeight: '600',
+                      transition: 'background-color 0.2s',
+                    }}
+                  >
+                    {loading ? 'Adding Rates...' : 'Add Rates to Rate Card'}
+                  </button>
+                </div>
+
+                {ratesResult && (
+                  <div style={{
+                    marginTop: '1.5rem',
+                    padding: '1rem',
+                    backgroundColor: ratesResult.success ? '#DFF0D8' : '#FFE5E5',
+                    borderRadius: '8px',
+                    border: `1px solid ${ratesResult.success ? '#6DC64B' : '#FFB3B3'}`,
+                  }}>
+                    <div style={{
+                      fontSize: '0.9rem',
+                      color: '#1C1C1C',
+                      marginBottom: '0.5rem',
+                      fontWeight: '600',
+                    }}>
+                      {ratesResult.success ? '✓ Success!' : '⚠ Partial Success'}
+                    </div>
+                    <div style={{
+                      fontSize: '0.85rem',
+                      color: '#1C1C1C',
+                      opacity: 0.8,
+                      lineHeight: '1.6',
+                    }}>
+                      {ratesResult.message}
+                      {ratesResult.errors && ratesResult.errors.length > 0 && (
+                        <div style={{ marginTop: '0.5rem' }}>
+                          <strong>Errors:</strong>
+                          <ul style={{ marginTop: '0.25rem', paddingLeft: '1.5rem' }}>
+                            {ratesResult.errors.map((err: string, idx: number) => (
+                              <li key={idx}>{err}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           ) : (
             <p style={{
