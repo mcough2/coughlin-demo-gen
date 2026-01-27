@@ -378,6 +378,16 @@ function getOneYearLater(startDate: string): string {
   return `${targetYear}-${String(finalMonth).padStart(2, '0')}-01T00:00:00Z`
 }
 
+function getThreeYearsLater(startDate: string): string {
+  const date = new Date(startDate)
+  // Add exactly 36 months (3 years) at UTC midnight
+  const currentYear = date.getUTCFullYear()
+  const currentMonth = date.getUTCMonth() // 0-11
+  const targetYear = currentYear + 3
+  const finalMonth = currentMonth + 1 // Convert to 1-12
+  return `${targetYear}-${String(finalMonth).padStart(2, '0')}-01T00:00:00Z`
+}
+
 function generateRandomSixDigits(): string {
   return Math.floor(100000 + Math.random() * 900000).toString()
 }
@@ -580,25 +590,23 @@ async function createCustomers(apiKey: string, packageIds: Record<string, string
     customerIds['Commit customer (advanced cluster)'] = advancedCustomerId
     ingestAliases['Commit customer (advanced cluster)'] = advancedIngestAlias
 
-    // Create contract for advanced commit customer (3-year contract, no end date for now)
+    // Create contract for advanced commit customer (3-year contract)
+    const contractEndDate = getThreeYearsLater(startDate)
     const contractPayload: any = {
       customer_id: advancedCustomerId,
       starting_at: startDate,
       name: 'enterprise customer (3-year)',
       rate_card_id: standardRateCardId,
-      ending_before: getOneYearLater(getOneYearLater(getOneYearLater(startDate))), // 3 years later
+      ending_before: contractEndDate,
       commits: [],
       overrides: []
     }
 
     if (prepaidCommitProductId) {
-      // Add commits for 3 years with increasing amounts
-      // Contract end date is 3 years from start date
-      const contractEndDate = getOneYearLater(getOneYearLater(getOneYearLater(startDate)))
-      
-      // Year 1 start: contract start date
-      // Year 2 start: 1 year from contract start date
-      // Year 3 start: 2 years from contract start date
+      // Access schedule items:
+      // First: starts on contract start date, ends on contract end date
+      // Second: starts 1 year from contract start date, ends on contract end date
+      // Third: starts 2 years from contract start date, ends on contract end date
       const year1Start = startDate
       const year2Start = getOneYearLater(startDate)
       const year3Start = getOneYearLater(year2Start)
