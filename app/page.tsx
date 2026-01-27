@@ -379,7 +379,7 @@ export default function Home() {
                   setRatesResult(null)
                   
                   try {
-                    // Step 1: Generate demo objects
+                    // Generate demo objects (includes adding rates to rate card)
                     const generateRes = await fetch('/api/infra-saas/generate', {
                       method: 'POST',
                       headers: {
@@ -395,35 +395,6 @@ export default function Home() {
                     }
                     
                     setGenerationResult(generateData)
-                    
-                    // Step 2: Add rates from CSV (only if step 1 succeeded)
-                    try {
-                      const ratesRes = await fetch('/api/rate-cards/add-rates', {
-                        method: 'POST',
-                        headers: {
-                          'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({ apiKey }),
-                      })
-
-                      const ratesData = await ratesRes.json()
-
-                      if (!ratesRes.ok) {
-                        throw new Error(ratesData.error || 'Failed to add rates')
-                      }
-
-                      // Add rates info to generation result for summary
-                      if (generateData.results) {
-                        generateData.results.ratesAdded = ratesData.message || `Successfully added ${ratesData.ratesSent || 0} rates to rate card "Standard Rate Card"`
-                      }
-                      setGenerationResult(generateData)
-                    } catch (ratesErr) {
-                      // If rates fail, add error to generation result
-                      if (generateData.results && generateData.results.errors) {
-                        generateData.results.errors.push(`Rates: ${ratesErr instanceof Error ? ratesErr.message : 'Failed to add rates'}`)
-                      }
-                      setGenerationResult(generateData)
-                    }
                   } catch (err) {
                     setError(err instanceof Error ? err.message : 'An error occurred')
                   } finally {
