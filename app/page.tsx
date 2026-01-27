@@ -10,10 +10,9 @@ export default function Home() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [generationResult, setGenerationResult] = useState<any>(null)
-  const [csvFile, setCsvFile] = useState<File | null>(null)
-  const [rateCardName, setRateCardName] = useState('')
-  const [defaultEffectiveAt, setDefaultEffectiveAt] = useState('')
   const [ratesResult, setRatesResult] = useState<any>(null)
+  const [clearingSandbox, setClearingSandbox] = useState(false)
+  const [clearSandboxResult, setClearSandboxResult] = useState<any>(null)
 
   const handleApiKeySubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -34,6 +33,7 @@ export default function Home() {
     setError('')
     setGenerationResult(null)
     setRatesResult(null)
+    setClearSandboxResult(null)
     
     // Scroll to next steps section after a short delay
     setTimeout(() => {
@@ -369,16 +369,18 @@ export default function Home() {
                 opacity: 0.8,
                 marginBottom: '1.5rem',
               }}>
-                This will create billable metrics, products, and rate cards for an infrastructure SaaS demo similar to Confluent.
+                This will create billable metrics, products, and rate cards for an infrastructure SaaS demo similar to Confluent, then add rates from the predefined pricebook.csv file to the Standard Rate Card.
               </p>
               <button
                 onClick={async () => {
                   setLoading(true)
                   setError('')
                   setGenerationResult(null)
+                  setRatesResult(null)
                   
                   try {
-                    const res = await fetch('/api/infra-saas/generate', {
+                    // Step 1: Generate demo objects
+                    const generateRes = await fetch('/api/infra-saas/generate', {
                       method: 'POST',
                       headers: {
                         'Content-Type': 'application/json',
@@ -386,13 +388,42 @@ export default function Home() {
                       body: JSON.stringify({ apiKey }),
                     })
                     
-                    const data = await res.json()
+                    const generateData = await generateRes.json()
                     
-                    if (!res.ok) {
-                      throw new Error(data.error || 'Failed to generate demo')
+                    if (!generateRes.ok) {
+                      throw new Error(generateData.error || 'Failed to generate demo objects')
                     }
                     
-                    setGenerationResult(data)
+                    setGenerationResult(generateData)
+                    
+                    // Step 2: Add rates from CSV (only if step 1 succeeded)
+                    try {
+                      const ratesRes = await fetch('/api/rate-cards/add-rates', {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ apiKey }),
+                      })
+
+                      const ratesData = await ratesRes.json()
+
+                      if (!ratesRes.ok) {
+                        throw new Error(ratesData.error || 'Failed to add rates')
+                      }
+
+                      // Add rates info to generation result for summary
+                      if (generateData.results) {
+                        generateData.results.ratesAdded = ratesData.message || `Successfully added ${ratesData.ratesSent || 0} rates to rate card "Standard Rate Card"`
+                      }
+                      setGenerationResult(generateData)
+                    } catch (ratesErr) {
+                      // If rates fail, add error to generation result
+                      if (generateData.results && generateData.results.errors) {
+                        generateData.results.errors.push(`Rates: ${ratesErr instanceof Error ? ratesErr.message : 'Failed to add rates'}`)
+                      }
+                      setGenerationResult(generateData)
+                    }
                   } catch (err) {
                     setError(err instanceof Error ? err.message : 'An error occurred')
                   } finally {
@@ -412,7 +443,7 @@ export default function Home() {
                   transition: 'background-color 0.2s',
                 }}
               >
-                {loading ? 'Generating...' : 'Generate Demo Objects'}
+                {loading ? 'Generating Demo...' : 'Generate Infra SaaS Demo'}
               </button>
               
               {generationResult && (
@@ -426,224 +457,59 @@ export default function Home() {
                   <div style={{
                     fontSize: '0.9rem',
                     color: '#1C1C1C',
-                    marginBottom: '0.5rem',
+                    marginBottom: '0.75rem',
                     fontWeight: '600',
                   }}>
-                    {generationResult.success ? '✓ Success!' : '⚠ Partial Success'}
+                    {generationResult.success ? '✓ Demo Generated Successfully' : '⚠ Partial Success'}
                   </div>
                   <div style={{
                     fontSize: '0.85rem',
                     color: '#1C1C1C',
                     opacity: 0.8,
-                    whiteSpace: 'pre-wrap',
-                    fontFamily: 'monospace',
-                    maxHeight: '300px',
-                    overflow: 'auto',
+                    lineHeight: '1.8',
                   }}>
-                    {JSON.stringify(generationResult.results, null, 2)}
+                    {generationResult.results && (
+                      <>
+                        {generationResult.results.billableMetrics && Object.keys(generationResult.results.billableMetrics).length > 0 && (
+                          <div>• Created {Object.keys(generationResult.results.billableMetrics).length} billable metric{Object.keys(generationResult.results.billableMetrics).length !== 1 ? 's' : ''}</div>
+                        )}
+                        {generationResult.results.products && Object.keys(generationResult.results.products).length > 0 && (
+                          <div>• Created {Object.keys(generationResult.results.products).length} product{Object.keys(generationResult.results.products).length !== 1 ? 's' : ''}</div>
+                        )}
+                        {generationResult.results.rateCards && Object.keys(generationResult.results.rateCards).length > 0 && (
+                          <div>• Created {Object.keys(generationResult.results.rateCards).length} rate card{Object.keys(generationResult.results.rateCards).length !== 1 ? 's' : ''}</div>
+                        )}
+                        {generationResult.results.ratesAdded && (
+                          <div>• {generationResult.results.ratesAdded}</div>
+                        )}
+                        {generationResult.results.packages && Object.keys(generationResult.results.packages).length > 0 && (
+                          <div>• Created {Object.keys(generationResult.results.packages).length} package{Object.keys(generationResult.results.packages).length !== 1 ? 's' : ''}</div>
+                        )}
+                        {generationResult.results.customers && Object.keys(generationResult.results.customers).length > 0 && (
+                          <div>• Created {Object.keys(generationResult.results.customers).length} customer{Object.keys(generationResult.results.customers).length !== 1 ? 's' : ''}</div>
+                        )}
+                        {generationResult.results.contracts && Object.keys(generationResult.results.contracts).length > 0 && (
+                          <div>• Created {Object.keys(generationResult.results.contracts).length} contract{Object.keys(generationResult.results.contracts).length !== 1 ? 's' : ''}</div>
+                        )}
+                        {generationResult.results.usageEvents && (
+                          <div>• Generated {generationResult.results.usageEvents.eventsSent || 0} usage event{generationResult.results.usageEvents.eventsSent !== 1 ? 's' : ''}</div>
+                        )}
+                        {generationResult.results.errors && generationResult.results.errors.length > 0 && (
+                          <div style={{ marginTop: '0.5rem', color: '#C00' }}>
+                            <strong>Errors:</strong>
+                            <ul style={{ marginTop: '0.25rem', paddingLeft: '1.5rem' }}>
+                              {generationResult.results.errors.map((err: string, idx: number) => (
+                                <li key={idx} style={{ fontSize: '0.8rem' }}>{err}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </>
+                    )}
                   </div>
                 </div>
               )}
 
-              {/* Add Rates Section */}
-              <div style={{
-                marginTop: '2rem',
-                padding: '1.5rem',
-                backgroundColor: '#FFFFFF',
-                borderRadius: '8px',
-                border: '1px solid #E0E0E0',
-              }}>
-                <h4 style={{
-                  fontSize: '1rem',
-                  marginBottom: '1rem',
-                  color: '#1C1C1C',
-                  fontWeight: '600',
-                }}>
-                  Add Rates from CSV
-                </h4>
-                <div style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '1rem',
-                }}>
-                  <div>
-                    <label style={{
-                      display: 'block',
-                      marginBottom: '0.5rem',
-                      fontSize: '0.9rem',
-                      color: '#1C1C1C',
-                      fontWeight: '500',
-                    }}>
-                      Rate Card Name:
-                    </label>
-                    <input
-                      type="text"
-                      value={rateCardName}
-                      onChange={(e) => setRateCardName(e.target.value)}
-                      placeholder="e.g., Growth or Enterprise"
-                      style={{
-                        width: '100%',
-                        padding: '0.75rem',
-                        fontSize: '1rem',
-                        border: '2px solid #E0E0E0',
-                        borderRadius: '8px',
-                        fontFamily: 'inherit',
-                        backgroundColor: '#FFFFFF',
-                        color: '#1C1C1C',
-                      }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{
-                      display: 'block',
-                      marginBottom: '0.5rem',
-                      fontSize: '0.9rem',
-                      color: '#1C1C1C',
-                      fontWeight: '500',
-                    }}>
-                      Default Effective Date (optional):
-                    </label>
-                    <input
-                      type="datetime-local"
-                      value={defaultEffectiveAt}
-                      onChange={(e) => setDefaultEffectiveAt(e.target.value)}
-                      style={{
-                        width: '100%',
-                        padding: '0.75rem',
-                        fontSize: '1rem',
-                        border: '2px solid #E0E0E0',
-                        borderRadius: '8px',
-                        fontFamily: 'inherit',
-                        backgroundColor: '#FFFFFF',
-                        color: '#1C1C1C',
-                      }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{
-                      display: 'block',
-                      marginBottom: '0.5rem',
-                      fontSize: '0.9rem',
-                      color: '#1C1C1C',
-                      fontWeight: '500',
-                    }}>
-                      CSV File:
-                    </label>
-                    <input
-                      type="file"
-                      accept=".csv"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0]
-                        if (file) {
-                          setCsvFile(file)
-                        }
-                      }}
-                      style={{
-                        width: '100%',
-                        padding: '0.75rem',
-                        fontSize: '1rem',
-                        border: '2px solid #E0E0E0',
-                        borderRadius: '8px',
-                        fontFamily: 'inherit',
-                        backgroundColor: '#FFFFFF',
-                        color: '#1C1C1C',
-                      }}
-                    />
-                  </div>
-                  <button
-                    onClick={async () => {
-                      if (!csvFile || !rateCardName) {
-                        setError('Please provide both CSV file and rate card name')
-                        return
-                      }
-
-                      setLoading(true)
-                      setError('')
-                      setRatesResult(null)
-
-                      try {
-                        const formData = new FormData()
-                        formData.append('apiKey', apiKey)
-                        formData.append('csvFile', csvFile)
-                        formData.append('rateCardName', rateCardName)
-                        if (defaultEffectiveAt) {
-                          // Convert datetime-local to ISO string
-                          const date = new Date(defaultEffectiveAt)
-                          formData.append('defaultEffectiveAt', date.toISOString())
-                        }
-
-                        const res = await fetch('/api/rate-cards/add-rates', {
-                          method: 'POST',
-                          body: formData,
-                        })
-
-                        const data = await res.json()
-
-                        if (!res.ok) {
-                          throw new Error(data.error || 'Failed to add rates')
-                        }
-
-                        setRatesResult(data)
-                      } catch (err) {
-                        setError(err instanceof Error ? err.message : 'An error occurred')
-                      } finally {
-                        setLoading(false)
-                      }
-                    }}
-                    disabled={loading || !csvFile || !rateCardName || !apiKey.trim()}
-                    style={{
-                      padding: '0.75rem 1.5rem',
-                      fontSize: '1rem',
-                      backgroundColor: loading ? '#A6D96A' : '#6DC64B',
-                      color: '#FFFFFF',
-                      border: 'none',
-                      borderRadius: '8px',
-                      cursor: loading || !csvFile || !rateCardName || !apiKey.trim() ? 'not-allowed' : 'pointer',
-                      fontWeight: '600',
-                      transition: 'background-color 0.2s',
-                    }}
-                  >
-                    {loading ? 'Adding Rates...' : 'Add Rates to Rate Card'}
-                  </button>
-                </div>
-
-                {ratesResult && (
-                  <div style={{
-                    marginTop: '1.5rem',
-                    padding: '1rem',
-                    backgroundColor: ratesResult.success ? '#DFF0D8' : '#FFE5E5',
-                    borderRadius: '8px',
-                    border: `1px solid ${ratesResult.success ? '#6DC64B' : '#FFB3B3'}`,
-                  }}>
-                    <div style={{
-                      fontSize: '0.9rem',
-                      color: '#1C1C1C',
-                      marginBottom: '0.5rem',
-                      fontWeight: '600',
-                    }}>
-                      {ratesResult.success ? '✓ Success!' : '⚠ Partial Success'}
-                    </div>
-                    <div style={{
-                      fontSize: '0.85rem',
-                      color: '#1C1C1C',
-                      opacity: 0.8,
-                      lineHeight: '1.6',
-                    }}>
-                      {ratesResult.message}
-                      {ratesResult.errors && ratesResult.errors.length > 0 && (
-                        <div style={{ marginTop: '0.5rem' }}>
-                          <strong>Errors:</strong>
-                          <ul style={{ marginTop: '0.25rem', paddingLeft: '1.5rem' }}>
-                            {ratesResult.errors.map((err: string, idx: number) => (
-                              <li key={idx}>{err}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
             </div>
           ) : (
             <p style={{
@@ -655,6 +521,153 @@ export default function Home() {
                 ? 'AI Token Based demo configuration will be available here. You can set up customers, products, and usage events for token-based billing.'
                 : 'Hybrid Seat+ Usage demo configuration will be available here. You can set up customers, products, and usage events combining seat-based and usage-based billing.'}
             </p>
+          )}
+        </div>
+      )}
+
+      {/* Clear Sandbox Button - Bottom of Page */}
+      {apiKey && (
+        <div style={{
+          width: '100%',
+          maxWidth: '600px',
+          marginTop: '4rem',
+          marginBottom: '2rem',
+          padding: '1.5rem',
+          backgroundColor: '#FFF5F5',
+          borderRadius: '12px',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+          border: '2px solid #FF6B6B',
+        }}>
+          <h3 style={{
+            fontSize: '1.2rem',
+            marginBottom: '0.75rem',
+            color: '#C00',
+            fontWeight: '600',
+          }}>
+            ⚠️ Clear Sandbox
+          </h3>
+          <p style={{
+            fontSize: '0.9rem',
+            color: '#1C1C1C',
+            opacity: 0.8,
+            marginBottom: '1rem',
+            lineHeight: '1.5',
+          }}>
+            This will archive all customers, rate cards, products, and billable metrics in your account. This action cannot be undone.
+          </p>
+          <button
+            onClick={async () => {
+              if (!confirm('Are you sure you want to clear the sandbox? This will archive all customers, rate cards, products, and billable metrics. This action cannot be undone.')) {
+                return
+              }
+
+              setClearingSandbox(true)
+              setError('')
+              setClearSandboxResult(null)
+
+              try {
+                const res = await fetch('/api/sandbox/clear', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({ apiKey }),
+                })
+
+                const data = await res.json()
+
+                if (!res.ok) {
+                  throw new Error(data.error || 'Failed to clear sandbox')
+                }
+
+                setClearSandboxResult(data)
+              } catch (err) {
+                setError(err instanceof Error ? err.message : 'An error occurred')
+              } finally {
+                setClearingSandbox(false)
+              }
+            }}
+            disabled={clearingSandbox || !apiKey.trim()}
+            style={{
+              width: '100%',
+              padding: '0.75rem',
+              fontSize: '1rem',
+              backgroundColor: clearingSandbox ? '#FF9999' : '#FF6B6B',
+              color: '#FFFFFF',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: clearingSandbox || !apiKey.trim() ? 'not-allowed' : 'pointer',
+              fontWeight: '600',
+              transition: 'background-color 0.2s',
+            }}
+            onMouseEnter={(e) => {
+              if (!clearingSandbox && apiKey.trim()) {
+                e.currentTarget.style.backgroundColor = '#FF5252'
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!clearingSandbox) {
+                e.currentTarget.style.backgroundColor = '#FF6B6B'
+              }
+            }}
+          >
+            {clearingSandbox ? 'Clearing Sandbox...' : 'Clear Sandbox'}
+          </button>
+
+          {clearSandboxResult && (
+            <div style={{
+              marginTop: '1.5rem',
+              padding: '1rem',
+              backgroundColor: clearSandboxResult.success ? '#DFF0D8' : '#FFE5E5',
+              borderRadius: '8px',
+              border: `1px solid ${clearSandboxResult.success ? '#6DC64B' : '#FFB3B3'}`,
+            }}>
+              <div style={{
+                fontSize: '0.9rem',
+                color: '#1C1C1C',
+                marginBottom: '0.5rem',
+                fontWeight: '600',
+              }}>
+                {clearSandboxResult.success ? '✓ Sandbox Cleared!' : '⚠ Partial Success'}
+              </div>
+              {clearSandboxResult.summary && (
+                <div style={{
+                  fontSize: '0.85rem',
+                  color: '#1C1C1C',
+                  opacity: 0.8,
+                  lineHeight: '1.6',
+                  marginBottom: '0.5rem',
+                }}>
+                  <div><strong>Total Archived:</strong> {clearSandboxResult.summary.totalArchived} objects</div>
+                  <div style={{ marginTop: '0.25rem' }}>
+                    • Customers: {clearSandboxResult.summary.customersArchived}
+                  </div>
+                  <div>
+                    • Rate Cards: {clearSandboxResult.summary.rateCardsArchived}
+                  </div>
+                  <div>
+                    • Products: {clearSandboxResult.summary.productsArchived}
+                  </div>
+                  <div>
+                    • Billable Metrics: {clearSandboxResult.summary.billableMetricsArchived}
+                  </div>
+                  {/* Packages archiving disabled - packages can't be archived via API */}
+                </div>
+              )}
+              {clearSandboxResult.errors && clearSandboxResult.errors.length > 0 && (
+                <div style={{ marginTop: '0.5rem' }}>
+                  <strong>Errors:</strong>
+                  <ul style={{ marginTop: '0.25rem', paddingLeft: '1.5rem', fontSize: '0.8rem' }}>
+                    {clearSandboxResult.errors.slice(0, 10).map((err: string, idx: number) => (
+                      <li key={idx}>{err}</li>
+                    ))}
+                    {clearSandboxResult.errors.length > 10 && (
+                      <li>... and {clearSandboxResult.errors.length - 10} more errors</li>
+                    )}
+                  </ul>
+                </div>
+              )}
+            </div>
           )}
         </div>
       )}

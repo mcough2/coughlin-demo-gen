@@ -25,6 +25,12 @@ npm run dev
 2. Select a demo type (AI Token Based or Infra SaaS)
 3. Configure and generate your demo
 
+## Security
+
+- API keys are only stored in browser state and sent to API routes - never logged or exposed
+- All customer data is dynamically generated - no real customer information is used
+- Console logging has been minimized to prevent exposure of sensitive data
+
 ## Development
 
 - `npm run dev` - Start development server

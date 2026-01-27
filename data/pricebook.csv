@@ -1,0 +1,181 @@
+product_name,cluster_type,cloud_provider,region,price,rate_type,effective_at,entitled
+Storage (GiB-minutes),basic,aws,us-east-1,0.10,flat,2026-01-01T00:00:00Z,true
+Storage (GiB-minutes),basic,aws,us-west-2,0.10,flat,2026-01-01T00:00:00Z,true
+Storage (GiB-minutes),basic,aws,eu-west-1,0.12,flat,2026-01-01T00:00:00Z,true
+Storage (GiB-minutes),basic,aws,ap-southeast-1,0.12,flat,2026-01-01T00:00:00Z,true
+Storage (GiB-minutes),basic,aws,eu-central-1,0.12,flat,2026-01-01T00:00:00Z,true
+Storage (GiB-minutes),basic,azure,eastus,0.12,flat,2026-01-01T00:00:00Z,true
+Storage (GiB-minutes),basic,azure,westus2,0.12,flat,2026-01-01T00:00:00Z,true
+Storage (GiB-minutes),basic,azure,westeurope,0.14,flat,2026-01-01T00:00:00Z,true
+Storage (GiB-minutes),basic,azure,southeastasia,0.14,flat,2026-01-01T00:00:00Z,true
+Storage (GiB-minutes),basic,azure,centralus,0.12,flat,2026-01-01T00:00:00Z,true
+Storage (GiB-minutes),basic,gcp,us-central1,0.14,flat,2026-01-01T00:00:00Z,true
+Storage (GiB-minutes),basic,gcp,us-east1,0.14,flat,2026-01-01T00:00:00Z,true
+Storage (GiB-minutes),basic,gcp,europe-west1,0.16,flat,2026-01-01T00:00:00Z,true
+Storage (GiB-minutes),basic,gcp,asia-southeast1,0.16,flat,2026-01-01T00:00:00Z,true
+Storage (GiB-minutes),basic,gcp,us-west1,0.14,flat,2026-01-01T00:00:00Z,true
+Storage (GiB-minutes),standard,aws,us-east-1,0.15,flat,2026-01-01T00:00:00Z,true
+Storage (GiB-minutes),standard,aws,us-west-2,0.15,flat,2026-01-01T00:00:00Z,true
+Storage (GiB-minutes),standard,aws,eu-west-1,0.18,flat,2026-01-01T00:00:00Z,true
+Storage (GiB-minutes),standard,aws,ap-southeast-1,0.18,flat,2026-01-01T00:00:00Z,true
+Storage (GiB-minutes),standard,aws,eu-central-1,0.18,flat,2026-01-01T00:00:00Z,true
+Storage (GiB-minutes),standard,azure,eastus,0.18,flat,2026-01-01T00:00:00Z,true
+Storage (GiB-minutes),standard,azure,westus2,0.18,flat,2026-01-01T00:00:00Z,true
+Storage (GiB-minutes),standard,azure,westeurope,0.21,flat,2026-01-01T00:00:00Z,true
+Storage (GiB-minutes),standard,azure,southeastasia,0.21,flat,2026-01-01T00:00:00Z,true
+Storage (GiB-minutes),standard,azure,centralus,0.18,flat,2026-01-01T00:00:00Z,true
+Storage (GiB-minutes),standard,gcp,us-central1,0.21,flat,2026-01-01T00:00:00Z,true
+Storage (GiB-minutes),standard,gcp,us-east1,0.21,flat,2026-01-01T00:00:00Z,true
+Storage (GiB-minutes),standard,gcp,europe-west1,0.24,flat,2026-01-01T00:00:00Z,true
+Storage (GiB-minutes),standard,gcp,asia-southeast1,0.24,flat,2026-01-01T00:00:00Z,true
+Storage (GiB-minutes),standard,gcp,us-west1,0.21,flat,2026-01-01T00:00:00Z,true
+Storage (GiB-minutes),advanced,aws,us-east-1,0.25,flat,2026-01-01T00:00:00Z,true
+Storage (GiB-minutes),advanced,aws,us-west-2,0.25,flat,2026-01-01T00:00:00Z,true
+Storage (GiB-minutes),advanced,aws,eu-west-1,0.30,flat,2026-01-01T00:00:00Z,true
+Storage (GiB-minutes),advanced,aws,ap-southeast-1,0.30,flat,2026-01-01T00:00:00Z,true
+Storage (GiB-minutes),advanced,aws,eu-central-1,0.30,flat,2026-01-01T00:00:00Z,true
+Storage (GiB-minutes),advanced,azure,eastus,0.30,flat,2026-01-01T00:00:00Z,true
+Storage (GiB-minutes),advanced,azure,westus2,0.30,flat,2026-01-01T00:00:00Z,true
+Storage (GiB-minutes),advanced,azure,westeurope,0.35,flat,2026-01-01T00:00:00Z,true
+Storage (GiB-minutes),advanced,azure,southeastasia,0.35,flat,2026-01-01T00:00:00Z,true
+Storage (GiB-minutes),advanced,azure,centralus,0.30,flat,2026-01-01T00:00:00Z,true
+Storage (GiB-minutes),advanced,gcp,us-central1,0.35,flat,2026-01-01T00:00:00Z,true
+Storage (GiB-minutes),advanced,gcp,us-east1,0.35,flat,2026-01-01T00:00:00Z,true
+Storage (GiB-minutes),advanced,gcp,europe-west1,0.40,flat,2026-01-01T00:00:00Z,true
+Storage (GiB-minutes),advanced,gcp,asia-southeast1,0.40,flat,2026-01-01T00:00:00Z,true
+Storage (GiB-minutes),advanced,gcp,us-west1,0.35,flat,2026-01-01T00:00:00Z,true
+Compute (CPU-minutes),basic,aws,us-east-1,0.08,flat,2026-01-01T00:00:00Z,true
+Compute (CPU-minutes),basic,aws,us-west-2,0.08,flat,2026-01-01T00:00:00Z,true
+Compute (CPU-minutes),basic,aws,eu-west-1,0.10,flat,2026-01-01T00:00:00Z,true
+Compute (CPU-minutes),basic,aws,ap-southeast-1,0.10,flat,2026-01-01T00:00:00Z,true
+Compute (CPU-minutes),basic,aws,eu-central-1,0.10,flat,2026-01-01T00:00:00Z,true
+Compute (CPU-minutes),basic,azure,eastus,0.10,flat,2026-01-01T00:00:00Z,true
+Compute (CPU-minutes),basic,azure,westus2,0.10,flat,2026-01-01T00:00:00Z,true
+Compute (CPU-minutes),basic,azure,westeurope,0.12,flat,2026-01-01T00:00:00Z,true
+Compute (CPU-minutes),basic,azure,southeastasia,0.12,flat,2026-01-01T00:00:00Z,true
+Compute (CPU-minutes),basic,azure,centralus,0.10,flat,2026-01-01T00:00:00Z,true
+Compute (CPU-minutes),basic,gcp,us-central1,0.12,flat,2026-01-01T00:00:00Z,true
+Compute (CPU-minutes),basic,gcp,us-east1,0.12,flat,2026-01-01T00:00:00Z,true
+Compute (CPU-minutes),basic,gcp,europe-west1,0.14,flat,2026-01-01T00:00:00Z,true
+Compute (CPU-minutes),basic,gcp,asia-southeast1,0.14,flat,2026-01-01T00:00:00Z,true
+Compute (CPU-minutes),basic,gcp,us-west1,0.12,flat,2026-01-01T00:00:00Z,true
+Compute (CPU-minutes),standard,aws,us-east-1,0.12,flat,2026-01-01T00:00:00Z,true
+Compute (CPU-minutes),standard,aws,us-west-2,0.12,flat,2026-01-01T00:00:00Z,true
+Compute (CPU-minutes),standard,aws,eu-west-1,0.15,flat,2026-01-01T00:00:00Z,true
+Compute (CPU-minutes),standard,aws,ap-southeast-1,0.15,flat,2026-01-01T00:00:00Z,true
+Compute (CPU-minutes),standard,aws,eu-central-1,0.15,flat,2026-01-01T00:00:00Z,true
+Compute (CPU-minutes),standard,azure,eastus,0.15,flat,2026-01-01T00:00:00Z,true
+Compute (CPU-minutes),standard,azure,westus2,0.15,flat,2026-01-01T00:00:00Z,true
+Compute (CPU-minutes),standard,azure,westeurope,0.18,flat,2026-01-01T00:00:00Z,true
+Compute (CPU-minutes),standard,azure,southeastasia,0.18,flat,2026-01-01T00:00:00Z,true
+Compute (CPU-minutes),standard,azure,centralus,0.15,flat,2026-01-01T00:00:00Z,true
+Compute (CPU-minutes),standard,gcp,us-central1,0.18,flat,2026-01-01T00:00:00Z,true
+Compute (CPU-minutes),standard,gcp,us-east1,0.18,flat,2026-01-01T00:00:00Z,true
+Compute (CPU-minutes),standard,gcp,europe-west1,0.21,flat,2026-01-01T00:00:00Z,true
+Compute (CPU-minutes),standard,gcp,asia-southeast1,0.21,flat,2026-01-01T00:00:00Z,true
+Compute (CPU-minutes),standard,gcp,us-west1,0.18,flat,2026-01-01T00:00:00Z,true
+Compute (CPU-minutes),advanced,aws,us-east-1,0.20,flat,2026-01-01T00:00:00Z,true
+Compute (CPU-minutes),advanced,aws,us-west-2,0.20,flat,2026-01-01T00:00:00Z,true
+Compute (CPU-minutes),advanced,aws,eu-west-1,0.25,flat,2026-01-01T00:00:00Z,true
+Compute (CPU-minutes),advanced,aws,ap-southeast-1,0.25,flat,2026-01-01T00:00:00Z,true
+Compute (CPU-minutes),advanced,aws,eu-central-1,0.25,flat,2026-01-01T00:00:00Z,true
+Compute (CPU-minutes),advanced,azure,eastus,0.25,flat,2026-01-01T00:00:00Z,true
+Compute (CPU-minutes),advanced,azure,westus2,0.25,flat,2026-01-01T00:00:00Z,true
+Compute (CPU-minutes),advanced,azure,westeurope,0.30,flat,2026-01-01T00:00:00Z,true
+Compute (CPU-minutes),advanced,azure,southeastasia,0.30,flat,2026-01-01T00:00:00Z,true
+Compute (CPU-minutes),advanced,azure,centralus,0.25,flat,2026-01-01T00:00:00Z,true
+Compute (CPU-minutes),advanced,gcp,us-central1,0.30,flat,2026-01-01T00:00:00Z,true
+Compute (CPU-minutes),advanced,gcp,us-east1,0.30,flat,2026-01-01T00:00:00Z,true
+Compute (CPU-minutes),advanced,gcp,europe-west1,0.35,flat,2026-01-01T00:00:00Z,true
+Compute (CPU-minutes),advanced,gcp,asia-southeast1,0.35,flat,2026-01-01T00:00:00Z,true
+Compute (CPU-minutes),advanced,gcp,us-west1,0.30,flat,2026-01-01T00:00:00Z,true
+Network Ingress (GB),basic,aws,us-east-1,0.05,flat,2026-01-01T00:00:00Z,true
+Network Ingress (GB),basic,aws,us-west-2,0.05,flat,2026-01-01T00:00:00Z,true
+Network Ingress (GB),basic,aws,eu-west-1,0.06,flat,2026-01-01T00:00:00Z,true
+Network Ingress (GB),basic,aws,ap-southeast-1,0.06,flat,2026-01-01T00:00:00Z,true
+Network Ingress (GB),basic,aws,eu-central-1,0.06,flat,2026-01-01T00:00:00Z,true
+Network Ingress (GB),basic,azure,eastus,0.06,flat,2026-01-01T00:00:00Z,true
+Network Ingress (GB),basic,azure,westus2,0.06,flat,2026-01-01T00:00:00Z,true
+Network Ingress (GB),basic,azure,westeurope,0.07,flat,2026-01-01T00:00:00Z,true
+Network Ingress (GB),basic,azure,southeastasia,0.07,flat,2026-01-01T00:00:00Z,true
+Network Ingress (GB),basic,azure,centralus,0.06,flat,2026-01-01T00:00:00Z,true
+Network Ingress (GB),basic,gcp,us-central1,0.07,flat,2026-01-01T00:00:00Z,true
+Network Ingress (GB),basic,gcp,us-east1,0.07,flat,2026-01-01T00:00:00Z,true
+Network Ingress (GB),basic,gcp,europe-west1,0.08,flat,2026-01-01T00:00:00Z,true
+Network Ingress (GB),basic,gcp,asia-southeast1,0.08,flat,2026-01-01T00:00:00Z,true
+Network Ingress (GB),basic,gcp,us-west1,0.07,flat,2026-01-01T00:00:00Z,true
+Network Ingress (GB),standard,aws,us-east-1,0.08,flat,2026-01-01T00:00:00Z,true
+Network Ingress (GB),standard,aws,us-west-2,0.08,flat,2026-01-01T00:00:00Z,true
+Network Ingress (GB),standard,aws,eu-west-1,0.10,flat,2026-01-01T00:00:00Z,true
+Network Ingress (GB),standard,aws,ap-southeast-1,0.10,flat,2026-01-01T00:00:00Z,true
+Network Ingress (GB),standard,aws,eu-central-1,0.10,flat,2026-01-01T00:00:00Z,true
+Network Ingress (GB),standard,azure,eastus,0.10,flat,2026-01-01T00:00:00Z,true
+Network Ingress (GB),standard,azure,westus2,0.10,flat,2026-01-01T00:00:00Z,true
+Network Ingress (GB),standard,azure,westeurope,0.12,flat,2026-01-01T00:00:00Z,true
+Network Ingress (GB),standard,azure,southeastasia,0.12,flat,2026-01-01T00:00:00Z,true
+Network Ingress (GB),standard,azure,centralus,0.10,flat,2026-01-01T00:00:00Z,true
+Network Ingress (GB),standard,gcp,us-central1,0.12,flat,2026-01-01T00:00:00Z,true
+Network Ingress (GB),standard,gcp,us-east1,0.12,flat,2026-01-01T00:00:00Z,true
+Network Ingress (GB),standard,gcp,europe-west1,0.14,flat,2026-01-01T00:00:00Z,true
+Network Ingress (GB),standard,gcp,asia-southeast1,0.14,flat,2026-01-01T00:00:00Z,true
+Network Ingress (GB),standard,gcp,us-west1,0.12,flat,2026-01-01T00:00:00Z,true
+Network Ingress (GB),advanced,aws,us-east-1,0.12,flat,2026-01-01T00:00:00Z,true
+Network Ingress (GB),advanced,aws,us-west-2,0.12,flat,2026-01-01T00:00:00Z,true
+Network Ingress (GB),advanced,aws,eu-west-1,0.15,flat,2026-01-01T00:00:00Z,true
+Network Ingress (GB),advanced,aws,ap-southeast-1,0.15,flat,2026-01-01T00:00:00Z,true
+Network Ingress (GB),advanced,aws,eu-central-1,0.15,flat,2026-01-01T00:00:00Z,true
+Network Ingress (GB),advanced,azure,eastus,0.15,flat,2026-01-01T00:00:00Z,true
+Network Ingress (GB),advanced,azure,westus2,0.15,flat,2026-01-01T00:00:00Z,true
+Network Ingress (GB),advanced,azure,westeurope,0.18,flat,2026-01-01T00:00:00Z,true
+Network Ingress (GB),advanced,azure,southeastasia,0.18,flat,2026-01-01T00:00:00Z,true
+Network Ingress (GB),advanced,azure,centralus,0.15,flat,2026-01-01T00:00:00Z,true
+Network Ingress (GB),advanced,gcp,us-central1,0.18,flat,2026-01-01T00:00:00Z,true
+Network Ingress (GB),advanced,gcp,us-east1,0.18,flat,2026-01-01T00:00:00Z,true
+Network Ingress (GB),advanced,gcp,europe-west1,0.21,flat,2026-01-01T00:00:00Z,true
+Network Ingress (GB),advanced,gcp,asia-southeast1,0.21,flat,2026-01-01T00:00:00Z,true
+Network Ingress (GB),advanced,gcp,us-west1,0.18,flat,2026-01-01T00:00:00Z,true
+Network Egress (GB),basic,aws,us-east-1,0.09,flat,2026-01-01T00:00:00Z,true
+Network Egress (GB),basic,aws,us-west-2,0.09,flat,2026-01-01T00:00:00Z,true
+Network Egress (GB),basic,aws,eu-west-1,0.11,flat,2026-01-01T00:00:00Z,true
+Network Egress (GB),basic,aws,ap-southeast-1,0.11,flat,2026-01-01T00:00:00Z,true
+Network Egress (GB),basic,aws,eu-central-1,0.11,flat,2026-01-01T00:00:00Z,true
+Network Egress (GB),basic,azure,eastus,0.11,flat,2026-01-01T00:00:00Z,true
+Network Egress (GB),basic,azure,westus2,0.11,flat,2026-01-01T00:00:00Z,true
+Network Egress (GB),basic,azure,westeurope,0.13,flat,2026-01-01T00:00:00Z,true
+Network Egress (GB),basic,azure,southeastasia,0.13,flat,2026-01-01T00:00:00Z,true
+Network Egress (GB),basic,azure,centralus,0.11,flat,2026-01-01T00:00:00Z,true
+Network Egress (GB),basic,gcp,us-central1,0.13,flat,2026-01-01T00:00:00Z,true
+Network Egress (GB),basic,gcp,us-east1,0.13,flat,2026-01-01T00:00:00Z,true
+Network Egress (GB),basic,gcp,europe-west1,0.15,flat,2026-01-01T00:00:00Z,true
+Network Egress (GB),basic,gcp,asia-southeast1,0.15,flat,2026-01-01T00:00:00Z,true
+Network Egress (GB),basic,gcp,us-west1,0.13,flat,2026-01-01T00:00:00Z,true
+Network Egress (GB),standard,aws,us-east-1,0.14,flat,2026-01-01T00:00:00Z,true
+Network Egress (GB),standard,aws,us-west-2,0.14,flat,2026-01-01T00:00:00Z,true
+Network Egress (GB),standard,aws,eu-west-1,0.17,flat,2026-01-01T00:00:00Z,true
+Network Egress (GB),standard,aws,ap-southeast-1,0.17,flat,2026-01-01T00:00:00Z,true
+Network Egress (GB),standard,aws,eu-central-1,0.17,flat,2026-01-01T00:00:00Z,true
+Network Egress (GB),standard,azure,eastus,0.17,flat,2026-01-01T00:00:00Z,true
+Network Egress (GB),standard,azure,westus2,0.17,flat,2026-01-01T00:00:00Z,true
+Network Egress (GB),standard,azure,westeurope,0.20,flat,2026-01-01T00:00:00Z,true
+Network Egress (GB),standard,azure,southeastasia,0.20,flat,2026-01-01T00:00:00Z,true
+Network Egress (GB),standard,azure,centralus,0.17,flat,2026-01-01T00:00:00Z,true
+Network Egress (GB),standard,gcp,us-central1,0.20,flat,2026-01-01T00:00:00Z,true
+Network Egress (GB),standard,gcp,us-east1,0.20,flat,2026-01-01T00:00:00Z,true
+Network Egress (GB),standard,gcp,europe-west1,0.23,flat,2026-01-01T00:00:00Z,true
+Network Egress (GB),standard,gcp,asia-southeast1,0.23,flat,2026-01-01T00:00:00Z,true
+Network Egress (GB),standard,gcp,us-west1,0.20,flat,2026-01-01T00:00:00Z,true
+Network Egress (GB),advanced,aws,us-east-1,0.22,flat,2026-01-01T00:00:00Z,true
+Network Egress (GB),advanced,aws,us-west-2,0.22,flat,2026-01-01T00:00:00Z,true
+Network Egress (GB),advanced,aws,eu-west-1,0.27,flat,2026-01-01T00:00:00Z,true
+Network Egress (GB),advanced,aws,ap-southeast-1,0.27,flat,2026-01-01T00:00:00Z,true
+Network Egress (GB),advanced,aws,eu-central-1,0.27,flat,2026-01-01T00:00:00Z,true
+Network Egress (GB),advanced,azure,eastus,0.27,flat,2026-01-01T00:00:00Z,true
+Network Egress (GB),advanced,azure,westus2,0.27,flat,2026-01-01T00:00:00Z,true
+Network Egress (GB),advanced,azure,westeurope,0.32,flat,2026-01-01T00:00:00Z,true
+Network Egress (GB),advanced,azure,southeastasia,0.32,flat,2026-01-01T00:00:00Z,true
+Network Egress (GB),advanced,azure,centralus,0.27,flat,2026-01-01T00:00:00Z,true
+Network Egress (GB),advanced,gcp,us-central1,0.32,flat,2026-01-01T00:00:00Z,true
+Network Egress (GB),advanced,gcp,us-east1,0.32,flat,2026-01-01T00:00:00Z,true
+Network Egress (GB),advanced,gcp,europe-west1,0.38,flat,2026-01-01T00:00:00Z,true
+Network Egress (GB),advanced,gcp,asia-southeast1,0.38,flat,2026-01-01T00:00:00Z,true
+Network Egress (GB),advanced,gcp,us-west1,0.32,flat,2026-01-01T00:00:00Z,true

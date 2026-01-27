@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { readFileSync } from 'fs'
+import { join } from 'path'
 
 const METRONOME_API_URL = 'https://api.metronome.com/v1'
+const CSV_FILE_PATH = join(process.cwd(), 'data', 'pricebook.csv')
 
 interface Rate {
   product_id: string
@@ -213,11 +216,12 @@ async function addRatesToRateCard(apiKey: string, rateCardId: string, rates: Rat
 
 export async function POST(request: NextRequest) {
   try {
-    const formData = await request.formData()
-    const apiKey = formData.get('apiKey') as string
-    const csvFile = formData.get('csvFile') as File
-    const rateCardName = formData.get('rateCardName') as string
-    const defaultEffectiveAt = formData.get('defaultEffectiveAt') as string || new Date().toISOString()
+    const body = await request.json()
+    const apiKey = body.apiKey
+    const rateCardName = 'Standard Rate Card' // Hardcoded rate card name
+    // Default to January 1st of current year at midnight UTC
+    const currentYear = new Date().getFullYear()
+    const defaultEffectiveAt = body.defaultEffectiveAt || `${currentYear}-01-01T00:00:00Z`
 
     if (!apiKey) {
       return NextResponse.json(
@@ -226,22 +230,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    if (!csvFile) {
-      return NextResponse.json(
-        { error: 'CSV file is required' },
-        { status: 400 }
-      )
-    }
-
-    if (!rateCardName) {
-      return NextResponse.json(
-        { error: 'Rate card name is required' },
-        { status: 400 }
-      )
-    }
-
-    // Read CSV file
-    const csvText = await csvFile.text()
+    // Read CSV file from project data folder
+    const csvText = readFileSync(CSV_FILE_PATH, 'utf-8')
 
     // Parse CSV
     const csvData = parseCSV(csvText)
