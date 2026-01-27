@@ -351,22 +351,21 @@ async function createPackages(apiKey: string, rateCardIds: Record<string, string
 
 function getFirstDayOfCurrentMonth(): string {
   const now = new Date()
-  const year = now.getFullYear()
-  const month = now.getMonth() + 1 // getMonth() returns 0-11
+  // Get UTC date to ensure we're always using UTC midnight
+  const year = now.getUTCFullYear()
+  const month = now.getUTCMonth() + 1 // getUTCMonth() returns 0-11
   return `${year}-${String(month).padStart(2, '0')}-01T00:00:00Z`
 }
 
 function getThreeMonthsLater(startDate: string): string {
   const date = new Date(startDate)
-  // Add 3 months to get to the 4th month
-  date.setMonth(date.getMonth() + 3)
-  // Set to first day of that month, then subtract 1 day to get last day of previous month
-  date.setDate(1)
-  date.setDate(date.getDate() - 1) // Last day of the 3rd month
-  const year = date.getFullYear()
-  const month = date.getMonth() + 1
-  const day = date.getDate()
-  return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T00:00:00Z`
+  // Add 3 months to get to the 4th month (e.g., Jan 1 -> April 1)
+  const currentYear = date.getUTCFullYear()
+  const currentMonth = date.getUTCMonth() // 0-11
+  const targetMonth = currentMonth + 3 // Add 3 months
+  const targetYear = currentYear + Math.floor(targetMonth / 12)
+  const finalMonth = (targetMonth % 12) + 1 // Convert to 1-12
+  return `${targetYear}-${String(finalMonth).padStart(2, '0')}-01T00:00:00Z`
 }
 
 function getOneYearLater(startDate: string): string {
