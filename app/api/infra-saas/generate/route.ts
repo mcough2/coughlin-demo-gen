@@ -646,23 +646,21 @@ async function createCustomers(apiKey: string, packageIds: Record<string, string
       })
     }
 
-    // Note: Overrides are commented out because products need to be in the rate card first
-    // Rates are added in Step 2, so overrides should be added after rates are added
-    // TODO: Add overrides after rates are added to the rate card
-    // const usageProductNames = ['Storage (GiB-minutes)', 'Compute (CPU-minutes)', 'Network Ingress (GB)', 'Network Egress (GB)']
-    // for (const productName of usageProductNames) {
-    //   const productId = productIds[productName]
-    //   if (!productId) {
-    //     console.warn(`Product ID not found for "${productName}". Available products: ${JSON.stringify(Object.keys(productIds))}`)
-    //     continue
-    //   }
-    //   contractPayload.overrides.push({
-    //     product_id: productId,
-    //     type: 'MULTIPLIER',
-    //     multiplier: 0.8,
-    //     starting_at: startDate
-    //   })
-    // }
+    // Add overrides for usage products
+    const usageProductNames = ['Storage (GiB-minutes)', 'Compute (CPU-minutes)', 'Network Ingress (GB)', 'Network Egress (GB)']
+    for (const productName of usageProductNames) {
+      const productId = productIds[productName]
+      if (!productId) {
+        // Product ID not found, skipping
+        continue
+      }
+      contractPayload.overrides.push({
+        product_id: productId,
+        type: 'MULTIPLIER',
+        multiplier: 0.8,
+        starting_at: startDate
+      })
+    }
     
     // Creating advanced commit contract
     
@@ -745,23 +743,21 @@ async function createCustomers(apiKey: string, packageIds: Record<string, string
       })
     }
 
-    // Note: Overrides are commented out because products need to be in the rate card first
-    // Rates are added in Step 2, so overrides should be added after rates are added
-    // TODO: Add overrides after rates are added to the rate card
-    // const standardProductNames = ['Storage (GiB-minutes)', 'Compute (CPU-minutes)']
-    // for (const productName of standardProductNames) {
-    //   const productId = productIds[productName]
-    //   if (!productId) {
-    //     console.warn(`Product ID not found for "${productName}". Available products: ${JSON.stringify(Object.keys(productIds))}`)
-    //     continue
-    //   }
-    //   contractPayload.overrides.push({
-    //     product_id: productId,
-    //     type: 'MULTIPLIER',
-    //     multiplier: 0.9,
-    //     starting_at: startDate
-    //   })
-    // }
+    // Add overrides for usage products
+    const standardProductNames = ['Storage (GiB-minutes)', 'Compute (CPU-minutes)']
+    for (const productName of standardProductNames) {
+      const productId = productIds[productName]
+      if (!productId) {
+        // Product ID not found, skipping
+        continue
+      }
+      contractPayload.overrides.push({
+        product_id: productId,
+        type: 'MULTIPLIER',
+        multiplier: 0.9,
+        starting_at: startDate
+      })
+    }
     
     // Creating standard commit contract
 
