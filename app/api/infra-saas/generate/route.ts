@@ -32,12 +32,6 @@ interface RateCard {
   aliases?: { name: string }[]
 }
 
-interface Package {
-  name: string
-  tags?: string[]
-  product_tags?: string[]
-  rate_card_id?: string
-}
 
 // Billable metric definitions for infrastructure SaaS demo
 const billableMetrics: BillableMetric[] = [
@@ -151,15 +145,6 @@ const rateCards: RateCard[] = [
   { name: 'Standard Rate Card' }
 ]
 
-// Only one package: Free Trial for free trial customers
-const packages: Package[] = [
-  {
-    name: 'Free Trial',
-    tags: ['free-trial'],
-    product_tags: ['all']
-  }
-]
-
 async function createBillableMetrics(apiKey: string) {
   const metricIds: Record<string, string> = {}
   const apiUrl = `${METRONOME_API_URL}/billable-metrics/create`
@@ -261,96 +246,6 @@ async function createRateCards(apiKey: string) {
   return rateCardIds
 }
 
-async function findExistingPackage(apiKey: string, packageName: string): Promise<string | null> {
-  try {
-    let nextPage: string | null = null
-    
-    while (true) {
-      const nextPageParam = nextPage ? `&next_page=${nextPage}` : ''
-      const response = await fetch(
-        `${METRONOME_API_URL}/packages/list?limit=100${nextPageParam}`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({})
-        }
-      )
-
-      if (!response.ok) {
-        return null
-      }
-
-      const responseJson = await response.json()
-      const responseData = responseJson.data || []
-
-      for (const pkg of responseData) {
-        // Check both name and trimmed name (in case of trailing spaces)
-        const pkgName = pkg.name?.trim() || pkg.current?.name?.trim()
-        if (pkgName === packageName.trim()) {
-          return pkg.id
-        }
-      }
-
-      nextPage = responseJson.next_page || null
-      if (!nextPage) break
-    }
-  } catch (error) {
-    console.error('Error checking for existing package:', error)
-    return null
-  }
-  
-  return null
-}
-
-async function createPackages(apiKey: string, rateCardIds: Record<string, string>) {
-  const apiUrl = `${METRONOME_API_URL}/packages/create`
-  const packageIds: Record<string, string> = {}
-
-  // Only create one package: Free Trial
-  for (const pkg of packages) {
-    // Check if package already exists to avoid duplicates
-    const existingId = await findExistingPackage(apiKey, pkg.name)
-    if (existingId) {
-      // Package already exists, reusing it
-      packageIds[pkg.name] = existingId
-      continue
-    }
-
-    const packageJson: any = {
-      name: pkg.name,
-      ...(pkg.tags && { tags: pkg.tags }),
-      ...(pkg.product_tags && { product_tags: pkg.product_tags }),
-      ...(pkg.rate_card_id && { rate_card_id: pkg.rate_card_id })
-    }
-
-    // If rate_card_id is not specified, use Standard Rate Card
-    if (!pkg.rate_card_id && rateCardIds['Standard Rate Card']) {
-      packageJson.rate_card_id = rateCardIds['Standard Rate Card']
-    }
-
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(packageJson)
-    })
-
-    const data = await response.json()
-
-    if (!response.ok) {
-      throw new Error(`Failed to create package ${pkg.name}: ${JSON.stringify(data)}`)
-    }
-
-    packageIds[pkg.name] = data.data.id
-  }
-
-  return packageIds
-}
 
 function getFirstDayOfCurrentMonth(): string {
   const now = new Date()
@@ -611,7 +506,7 @@ function generateAnimalClusterId(): string {
   return `${randomAnimal}-${sixDigits}`
 }
 
-async function createCustomers(apiKey: string, packageIds: Record<string, string>, rateCardIds: Record<string, string>, productIds: Record<string, string>) {
+async function createCustomers(apiKey: string, rateCardIds: Record<string, string>, productIds: Record<string, string>) {
   const customerIds: Record<string, string> = {}
   const contractIds: Record<string, string> = {}
   const ingestAliases: Record<string, string> = {}
@@ -623,7 +518,6 @@ async function createCustomers(apiKey: string, packageIds: Record<string, string
   const freeTrialCreditsProductId = productIds['Free Trial Credits']
   const prepaidCommitProductId = productIds['Prepaid Commit']
   const standardRateCardId = rateCardIds['Standard Rate Card']
-  const freeTrialPackageId = packageIds['Free Trial']
 
   // Validate required IDs
 
@@ -1208,7 +1102,6 @@ export async function POST(request: NextRequest) {
       billableMetrics: {},
       products: {},
       rateCards: {},
-      packages: {},
       customers: {},
       contracts: {},
       usageEvents: null,
@@ -1239,15 +1132,6 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      // Step 4: Create packages (depends on rate cards)
-      if (Object.keys(results.rateCards).length > 0) {
-        results.packages = await createPackages(apiKey, results.rateCards)
-      }
-    } catch (error) {
-      results.errors.push(`Packages: ${error instanceof Error ? error.message : 'Unknown error'}`)
-    }
-
-    try {
       // Step 4.5: Add rates to rate card (must happen before contracts are created with overrides)
       if (Object.keys(results.rateCards).length > 0) {
         const standardRateCardId = results.rateCards['Standard Rate Card']
@@ -1264,9 +1148,9 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      // Step 5: Create customers and contracts (depends on products, rate cards, and packages)
+      // Step 5: Create customers and contracts (depends on products and rate cards)
       if (Object.keys(results.products).length > 0 && Object.keys(results.rateCards).length > 0) {
-        const customerResults = await createCustomers(apiKey, results.packages, results.rateCards, results.products)
+        const customerResults = await createCustomers(apiKey, results.rateCards, results.products)
         results.customers = customerResults.customerIds
         results.contracts = customerResults.contractIds
         

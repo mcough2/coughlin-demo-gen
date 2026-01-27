@@ -13,7 +13,6 @@ A Next.js web application for generating demo environments in Metronome. Create 
   - Billable metrics (Storage, Compute, Network Ingress/Egress)
   - Products (usage and fixed types)
   - Rate cards with pricing from CSV
-  - Packages for customer segmentation
   - Three customer types:
     - Paygo customer with free trial credits
     - Standard commit customer (1-year contract)

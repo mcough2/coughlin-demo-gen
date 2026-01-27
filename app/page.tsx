@@ -450,9 +450,6 @@ export default function Home() {
                         {generationResult.results.ratesAdded && (
                           <div>• {generationResult.results.ratesAdded}</div>
                         )}
-                        {generationResult.results.packages && Object.keys(generationResult.results.packages).length > 0 && (
-                          <div>• Created {Object.keys(generationResult.results.packages).length} package{Object.keys(generationResult.results.packages).length !== 1 ? 's' : ''}</div>
-                        )}
                         {generationResult.results.customers && Object.keys(generationResult.results.customers).length > 0 && (
                           <div>• Created {Object.keys(generationResult.results.customers).length} customer{Object.keys(generationResult.results.customers).length !== 1 ? 's' : ''}</div>
                         )}
