@@ -10,7 +10,6 @@ export default function Home() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [generationResult, setGenerationResult] = useState<any>(null)
-  const [ratesResult, setRatesResult] = useState<any>(null)
   const [clearingSandbox, setClearingSandbox] = useState(false)
   const [clearSandboxResult, setClearSandboxResult] = useState<any>(null)
 
@@ -32,7 +31,6 @@ export default function Home() {
     setSelectedDemoType(type)
     setError('')
     setGenerationResult(null)
-    setRatesResult(null)
     setClearSandboxResult(null)
     
     // Scroll to next steps section after a short delay
@@ -376,7 +374,6 @@ export default function Home() {
                   setLoading(true)
                   setError('')
                   setGenerationResult(null)
-                  setRatesResult(null)
                   
                   try {
                     // Generate demo objects (includes adding rates to rate card)

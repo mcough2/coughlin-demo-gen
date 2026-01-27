@@ -699,8 +699,6 @@ async function createCustomers(apiKey: string, packageIds: Record<string, string
         }
       ]
     }
-    
-    console.log('Paygo contract payload:', JSON.stringify(contractPayload, null, 2))
 
     // Verify resources exist before creating contract
     const verifyCustomerResponse = await fetch(`${METRONOME_API_URL}/customers/${paygoCustomerId}`, {
@@ -866,9 +864,6 @@ async function createCustomers(apiKey: string, packageIds: Record<string, string
       })
     }
     
-    // Creating advanced commit contract
-    console.log('Advanced commit contract payload:', JSON.stringify(contractPayload, null, 2))
-    
     const contractResponse = await fetch(`${METRONOME_API_URL}/contracts/create`, {
       method: 'POST',
       headers: {
@@ -963,9 +958,6 @@ async function createCustomers(apiKey: string, packageIds: Record<string, string
         starting_at: startDate
       })
     }
-    
-    // Creating standard commit contract
-    console.log('Standard commit contract payload:', JSON.stringify(contractPayload, null, 2))
 
     const contractResponse = await fetch(`${METRONOME_API_URL}/contracts/create`, {
       method: 'POST',

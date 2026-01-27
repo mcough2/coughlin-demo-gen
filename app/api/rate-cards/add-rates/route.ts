@@ -144,7 +144,6 @@ function processCSVRates(
     }
 
     if (!productHash[productName]) {
-      console.warn(`Product ${productName} not found, skipping`)
       continue
     }
 
