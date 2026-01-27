@@ -370,10 +370,12 @@ function getThreeMonthsLater(startDate: string): string {
 
 function getOneYearLater(startDate: string): string {
   const date = new Date(startDate)
-  date.setFullYear(date.getFullYear() + 1)
-  const year = date.getFullYear()
-  const month = date.getMonth() + 1
-  return `${year}-${String(month).padStart(2, '0')}-01T00:00:00Z`
+  // Add exactly 12 months (1 year) at UTC midnight
+  const currentYear = date.getUTCFullYear()
+  const currentMonth = date.getUTCMonth() // 0-11
+  const targetYear = currentYear + 1
+  const finalMonth = currentMonth + 1 // Convert to 1-12
+  return `${targetYear}-${String(finalMonth).padStart(2, '0')}-01T00:00:00Z`
 }
 
 function generateRandomSixDigits(): string {
