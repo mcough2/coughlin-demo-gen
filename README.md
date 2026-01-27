@@ -22,7 +22,7 @@ npm run dev
 ## Usage
 
 1. Enter your Metronome API key in the webapp
-2. Select a demo type (AI Token Based or Infra SaaS)
+2. Select a demo type (AI Token Based, Infra SaaS, or Hybrid Seat+ Usage)
 3. Configure and generate your demo
 
 ## Security
