@@ -611,10 +611,10 @@ async function createCustomers(apiKey: string, packageIds: Record<string, string
       const year2Start = getOneYearLater(startDate)
       const year3Start = getOneYearLater(year2Start)
       
-      // Invoice schedule timestamps (1 year, 2 years, 3 years from start)
+      // Invoice schedule timestamps: contract start date, 1 year from start, 2 years from start
       const invoiceYear1 = startDate
       const invoiceYear2 = getOneYearLater(startDate)
-      const invoiceYear3 = getOneYearLater(year2Start)
+      const invoiceYear3 = getOneYearLater(year2Start) // 2 years from contract start date
       
       contractPayload.commits.push({
         product_id: prepaidCommitProductId,
