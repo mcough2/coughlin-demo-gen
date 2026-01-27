@@ -193,7 +193,7 @@ export default function Home() {
               lineHeight: '1.5',
               opacity: 0.7,
             }}>
-              Generate a demo similar to OpenAI's token-based billing model. Perfect for AI/ML services that charge based on token usage.
+              Generate a demo with token-based billing model. Perfect for AI/ML services that charge based on token usage.
             </div>
             {selectedDemoType === 'ai-token' && (
               <div style={{
@@ -253,7 +253,7 @@ export default function Home() {
               lineHeight: '1.5',
               opacity: 0.7,
             }}>
-              Generate a demo similar to Confluent's infrastructure SaaS billing model. Perfect for infrastructure services with usage-based pricing.
+              Generate a demo with infrastructure SaaS billing model. Perfect for infrastructure services with usage-based pricing.
             </div>
             {selectedDemoType === 'infra-saas' && (
               <div style={{
@@ -302,7 +302,7 @@ export default function Home() {
               lineHeight: '1.5',
               opacity: 0.7,
             }}>
-              Generate a demo similar to Notion's hybrid billing model. Combines seat-based pricing with usage-based charges for a comprehensive billing solution.
+              Generate a demo with hybrid billing model. Combines seat-based pricing with usage-based charges for a comprehensive billing solution.
             </div>
             {selectedDemoType === 'hybrid-seat' && (
               <div style={{
@@ -369,7 +369,7 @@ export default function Home() {
                 opacity: 0.8,
                 marginBottom: '1.5rem',
               }}>
-                This will create billable metrics, products, and rate cards for an infrastructure SaaS demo similar to Confluent, then add rates from the predefined pricebook.csv file to the Standard Rate Card.
+                This will create billable metrics, products, and rate cards for an infrastructure SaaS demo, then add rates from the predefined pricebook.csv file to the Standard Rate Card.
               </p>
               <button
                 onClick={async () => {
