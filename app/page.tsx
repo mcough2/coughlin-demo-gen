@@ -161,7 +161,7 @@ export default function Home() {
           gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
           gap: '1.5rem',
         }}>
-          {/* AI Token Based Demo */}
+          {/* AI Platform Demo */}
           <button
             onClick={() => handleDemoTypeSelect('ai-token')}
             disabled={!apiKey.trim() || loading}
@@ -183,7 +183,7 @@ export default function Home() {
               fontWeight: '600',
               color: '#1C1C1C',
             }}>
-              🤖 AI Token Based
+              🤖 AI Platform
             </div>
             <div style={{
               fontSize: '0.95rem',
@@ -191,7 +191,7 @@ export default function Home() {
               lineHeight: '1.5',
               opacity: 0.7,
             }}>
-              Generate a demo with token-based billing model. Perfect for AI/ML services that charge based on token usage.
+              An API platform company provides developers with tools and infrastructure to build, manage, and scale applications by exposing core functionality and data through APIs.
             </div>
             {selectedDemoType === 'ai-token' && (
               <div style={{
@@ -356,7 +356,11 @@ export default function Home() {
             marginBottom: '1rem',
             color: '#1C1C1C',
           }}>
-            {selectedDemoType === 'infra-saas' ? 'Generate Infra SaaS Demo' : 'Next Steps'}
+            {selectedDemoType === 'infra-saas'
+              ? 'Generate Infra SaaS Demo'
+              : selectedDemoType === 'ai-token'
+                ? 'Generate AI Platform Demo'
+                : 'Next Steps'}
           </h3>
           
           {selectedDemoType === 'infra-saas' ? (
@@ -476,15 +480,127 @@ export default function Home() {
               )}
 
             </div>
+          ) : selectedDemoType === 'ai-token' ? (
+            <div>
+              <p style={{
+                color: '#1C1C1C',
+                lineHeight: '1.6',
+                opacity: 0.8,
+                marginBottom: '1.5rem',
+              }}>
+                This ensures five fixed products exist (matched by name, type fixed: Prepaid Commit, Postpaid Commit, Credit, Trial Credit, SLA Credit), creates six billable metrics (input and output tokens for Code Assist, Chat, and Voice), matching usage products (with token-to-million-tokens quantity conversion), an “AI Platform Standard Rate Card,” and rates from <code style={{ fontSize: '0.9em' }}>data/ai-pricebook.csv</code>. Contracts and usage ingest are not part of this step.
+              </p>
+              <button
+                onClick={async () => {
+                  setLoading(true)
+                  setError('')
+                  setGenerationResult(null)
+
+                  try {
+                    const generateRes = await fetch('/api/ai-platform/generate', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                      },
+                      body: JSON.stringify({ apiKey }),
+                    })
+
+                    const generateData = await generateRes.json()
+
+                    if (!generateRes.ok) {
+                      throw new Error(generateData.error || 'Failed to generate AI Platform objects')
+                    }
+
+                    setGenerationResult(generateData)
+                  } catch (err) {
+                    setError(err instanceof Error ? err.message : 'An error occurred')
+                  } finally {
+                    setLoading(false)
+                  }
+                }}
+                disabled={loading || !apiKey.trim()}
+                style={{
+                  padding: '0.75rem 1.5rem',
+                  fontSize: '1rem',
+                  backgroundColor: loading ? '#A6D96A' : '#6DC64B',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: loading || !apiKey.trim() ? 'not-allowed' : 'pointer',
+                  fontWeight: '600',
+                  transition: 'background-color 0.2s',
+                }}
+              >
+                {loading ? 'Generating...' : 'Generate AI Platform Demo'}
+              </button>
+
+              {generationResult && (
+                <div style={{
+                  marginTop: '1.5rem',
+                  padding: '1rem',
+                  backgroundColor: generationResult.success ? '#DFF0D8' : '#FFE5E5',
+                  borderRadius: '8px',
+                  border: `1px solid ${generationResult.success ? '#6DC64B' : '#FFB3B3'}`,
+                }}>
+                  <div style={{
+                    fontSize: '0.9rem',
+                    color: '#1C1C1C',
+                    marginBottom: '0.75rem',
+                    fontWeight: '600',
+                  }}>
+                    {generationResult.success ? '✓ AI Platform objects created' : '⚠ Partial Success'}
+                  </div>
+                  <div style={{
+                    fontSize: '0.85rem',
+                    color: '#1C1C1C',
+                    opacity: 0.8,
+                    lineHeight: '1.8',
+                  }}>
+                    {generationResult.results && (
+                      <>
+                        {generationResult.results.fixedProducts && Object.keys(generationResult.results.fixedProducts).length > 0 && (
+                          <div>
+                            • Fixed products: {Object.keys(generationResult.results.fixedProducts).length} ensured by name (type=fixed)
+                            {Array.isArray(generationResult.results.fixedProductsCreated) && generationResult.results.fixedProductsCreated.length > 0
+                              ? ` — ${generationResult.results.fixedProductsCreated.length} newly created`
+                              : ''}
+                          </div>
+                        )}
+                        {generationResult.results.billableMetrics && Object.keys(generationResult.results.billableMetrics).length > 0 && (
+                          <div>• Created {Object.keys(generationResult.results.billableMetrics).length} billable metric{Object.keys(generationResult.results.billableMetrics).length !== 1 ? 's' : ''}</div>
+                        )}
+                        {generationResult.results.products && Object.keys(generationResult.results.products).length > 0 && (
+                          <div>• Created {Object.keys(generationResult.results.products).length} usage product{Object.keys(generationResult.results.products).length !== 1 ? 's' : ''}</div>
+                        )}
+                        {generationResult.results.rateCards && Object.keys(generationResult.results.rateCards).length > 0 && (
+                          <div>• Created {Object.keys(generationResult.results.rateCards).length} rate card{Object.keys(generationResult.results.rateCards).length !== 1 ? 's' : ''}</div>
+                        )}
+                        {generationResult.results.ratesAdded && (
+                          <div>• {generationResult.results.ratesAdded}</div>
+                        )}
+                        {generationResult.results.errors && generationResult.results.errors.length > 0 && (
+                          <div style={{ marginTop: '0.5rem', color: '#C00' }}>
+                            <strong>Errors:</strong>
+                            <ul style={{ marginTop: '0.25rem', paddingLeft: '1.5rem' }}>
+                              {generationResult.results.errors.map((err: string, idx: number) => (
+                                <li key={idx} style={{ fontSize: '0.8rem' }}>{err}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
           ) : (
             <p style={{
               color: '#1C1C1C',
               lineHeight: '1.6',
               opacity: 0.8,
             }}>
-              {selectedDemoType === 'ai-token'
-                ? 'AI Token Based demo configuration will be available here. You can set up customers, products, and usage events for token-based billing.'
-                : 'Hybrid Seat+ Usage demo configuration will be available here. You can set up customers, products, and usage events combining seat-based and usage-based billing.'}
+              Hybrid Seat+ Usage demo configuration will be available here. You can set up customers, products, and usage events combining seat-based and usage-based billing.
             </p>
           )}
         </div>

@@ -1,0 +1,27 @@
+product_name,model,processing_tier,price,effective_at,entitled,rate_type
+Code Assist - Input Tokens,gpt-5.4-mini,standard,0.75,2026-03-01T00:00:00Z,true,flat
+Code Assist - Output Tokens,gpt-5.4-mini,standard,4.5,2026-03-01T00:00:00Z,true,flat
+Chat - Input Tokens,gpt-5.4-mini,standard,0.75,2026-03-01T00:00:00Z,true,flat
+Chat - Output Tokens,gpt-5.4-mini,standard,4.5,2026-03-01T00:00:00Z,true,flat
+Code Assist - Input Tokens,gpt-5.4-mini,batch,0.375,2026-03-01T00:00:00Z,true,flat
+Code Assist - Output Tokens,gpt-5.4-mini,batch,2.25,2026-03-01T00:00:00Z,true,flat
+Chat - Input Tokens,gpt-5.4-mini,batch,0.375,2026-03-01T00:00:00Z,true,flat
+Chat - Output Tokens,gpt-5.4-mini,batch,2.25,2026-03-01T00:00:00Z,true,flat
+Chat - Input Tokens,gpt-5.4,standard,2.5,2026-03-01T00:00:00Z,true,flat
+Chat - Output Tokens,gpt-5.4,standard,15,2026-03-01T00:00:00Z,true,flat
+Chat - Input Tokens,gpt-5.4,batch,1.25,2026-03-01T00:00:00Z,true,flat
+Chat - Output Tokens,gpt-5.4,batch,7.5,2026-03-01T00:00:00Z,true,flat
+Voice - Input Tokens,gpt-realtime-1.5,standard,32,2026-03-01T00:00:00Z,true,flat
+Voice - Output Tokens,gpt-realtime-1.5,standard,64,2026-03-01T00:00:00Z,true,flat
+Code Assist - Input Tokens,claude-sonnet-4-6,standard,3,2026-03-01T00:00:00Z,true,flat
+Code Assist - Output Tokens,claude-sonnet-4-6,standard,15,2026-03-01T00:00:00Z,true,flat
+Chat - Input Tokens,claude-sonnet-4-6,standard,3,2026-03-01T00:00:00Z,true,flat
+Chat - Output Tokens,claude-sonnet-4-6,standard,15,2026-03-01T00:00:00Z,true,flat
+Code Assist - Input Tokens,claude-sonnet-4-6,batch,1.5,2026-03-01T00:00:00Z,true,flat
+Code Assist - Output Tokens,claude-sonnet-4-6,batch,7.5,2026-03-01T00:00:00Z,true,flat
+Chat - Input Tokens,claude-sonnet-4-6,batch,1.5,2026-03-01T00:00:00Z,true,flat
+Chat - Output Tokens,claude-sonnet-4-6,batch,7.5,2026-03-01T00:00:00Z,true,flat
+Voice - Input Tokens,claude-haiku-4-5,standard,1,2026-03-01T00:00:00Z,true,flat
+Voice - Output Tokens,claude-haiku-4-5,standard,5,2026-03-01T00:00:00Z,true,flat
+Voice - Input Tokens,claude-haiku-4-5,batch,0.5,2026-03-01T00:00:00Z,true,flat
+Voice - Output Tokens,claude-haiku-4-5,batch,2.5,2026-03-01T00:00:00Z,true,flat

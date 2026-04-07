@@ -21,7 +21,7 @@ async function fetchAllProducts(apiKey: string) {
   let nextPage: string | null = null
 
   while (true) {
-    const nextPageParam = nextPage ? `&next_page=${nextPage}` : ''
+    const nextPageParam: string = nextPage ? `&next_page=${nextPage}` : ''
     const response = await fetch(
       `${METRONOME_API_URL}/contract-pricing/products/list?limit=100${nextPageParam}`,
       {
@@ -59,7 +59,7 @@ async function findRateCardByName(apiKey: string, rateCardName: string) {
   let nextPage: string | null = null
 
   while (true) {
-    const nextPageParam = nextPage ? `&next_page=${nextPage}` : ''
+    const nextPageParam: string = nextPage ? `&next_page=${nextPage}` : ''
     const response = await fetch(
       `${METRONOME_API_URL}/contract-pricing/rate-cards/list?limit=100${nextPageParam}`,
       {

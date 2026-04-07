@@ -306,7 +306,7 @@ async function fetchAllProductsForRates(apiKey: string) {
   let nextPage: string | null = null
 
   while (true) {
-    const nextPageParam = nextPage ? `&next_page=${nextPage}` : ''
+    const nextPageParam: string = nextPage ? `&next_page=${nextPage}` : ''
     const response = await fetch(
       `${METRONOME_API_URL}/contract-pricing/products/list?limit=100${nextPageParam}`,
       {

@@ -14,7 +14,7 @@ async function listAllCustomers(apiKey: string): Promise<Array<{ id: string; ing
   let nextPage: string | null = null
 
   while (true) {
-    const nextPageParam = nextPage ? `&next_page=${nextPage}` : ''
+    const nextPageParam: string = nextPage ? `&next_page=${nextPage}` : ''
     const response = await fetch(
       `${METRONOME_API_URL}/customers?limit=100${nextPageParam}`,
       {
@@ -93,7 +93,7 @@ async function listAllRateCards(apiKey: string): Promise<string[]> {
   let nextPage: string | null = null
 
   while (true) {
-    const nextPageParam = nextPage ? `&next_page=${nextPage}` : ''
+    const nextPageParam: string = nextPage ? `&next_page=${nextPage}` : ''
     const response = await fetch(
       `${METRONOME_API_URL}/contract-pricing/rate-cards/list?limit=100${nextPageParam}`,
       {
@@ -129,7 +129,7 @@ async function listAllProducts(apiKey: string): Promise<string[]> {
   let nextPage: string | null = null
 
   while (true) {
-    const nextPageParam = nextPage ? `&next_page=${nextPage}` : ''
+    const nextPageParam: string = nextPage ? `&next_page=${nextPage}` : ''
     const response = await fetch(
       `${METRONOME_API_URL}/contract-pricing/products/list?limit=100${nextPageParam}`,
       {
@@ -167,7 +167,7 @@ async function listAllBillableMetrics(apiKey: string): Promise<string[]> {
   let nextPage: string | null = null
 
   while (true) {
-    const nextPageParam = nextPage ? `&next_page=${nextPage}` : ''
+    const nextPageParam: string = nextPage ? `&next_page=${nextPage}` : ''
     const response = await fetch(
       `${METRONOME_API_URL}/billable-metrics?limit=100${nextPageParam}&include_archived=false`,
       {
@@ -204,7 +204,7 @@ async function listAllPackages(apiKey: string): Promise<string[]> {
   let nextPage: string | null = null
 
   while (true) {
-    const nextPageParam = nextPage ? `&next_page=${nextPage}` : ''
+    const nextPageParam: string = nextPage ? `&next_page=${nextPage}` : ''
     const response = await fetch(
       `${METRONOME_API_URL}/packages/list?limit=100${nextPageParam}`,
       {
