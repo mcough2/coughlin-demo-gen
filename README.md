@@ -7,14 +7,14 @@ A Next.js web application for generating demo environments in Metronome. Create 
 - **Three Demo Types**:
   - **AI Platform** - Billable metrics and usage products for Code Assist, Chat, and Voice (`ai_platform.usage` events)
   - **Infra SaaS** - Infrastructure SaaS billing model with usage-based pricing
-  - **Hybrid Seat+ Usage** - Combines seat-based pricing with usage-based charges
+  - **Hybrid Seat+ Usage** — **TODO:** not implemented yet; the app only shows a placeholder. Seat + usage wiring may be added later.
 
 - **AI Platform Demo Includes**:
+  - **Scope:** The generator creates the full **catalog** side of the demo: billable metrics, fixed and usage products, a rate card, and rates from `data/ai-pricebook.csv`. It does **not** create example customers, contracts, or sample usage events (add those yourself or use **Infra SaaS** for a full customer + usage walkthrough).
   - **Fixed products** (created only if missing): looked up by exact **name** on active `FIXED` products from the list API — **Prepaid Commit**, **Postpaid Commit**, **Credit**, **Trial Credit**, **SLA Credit** (not matched by id)
   - Six billable metrics: input and output token sums for **Code Assist**, **Chat**, and **Voice** (`api_product`: `code_assist`, `chat`, `realtime_voice`)
   - Matching usage products: `pricing_group_key` on `model` + `processing_tier`, `presentation_group_key` on `upstream_provider`, `user_id`, `team_id`, `project_id`, plus **quantity_conversion** (divide token counts by 1e6 so CSV **$/MTok** matches Metronome rate units)
   - **AI Platform Standard Rate Card** with rates loaded from `data/ai-pricebook.csv` via `addRates` (same batching pattern as Infra)
-  - Does **not** create contracts or send usage events
 
 - **Infra SaaS Demo Includes**:
   - Billable metrics (Storage, Compute, Network Ingress/Egress)
@@ -47,7 +47,7 @@ A Next.js web application for generating demo environments in Metronome. Create 
 ## Usage
 
 1. Enter your Metronome API key in the webapp
-2. Select a demo type (**AI Platform** or **Infra SaaS**)
+2. Select a demo type (**AI Platform** or **Infra SaaS**). **Hybrid Seat+ Usage** is a **TODO** placeholder only.
 3. Click **Generate AI Platform Demo** or **Generate Infra SaaS Demo**
 4. For **Infra SaaS**, the app will:
    - Create billable metrics
