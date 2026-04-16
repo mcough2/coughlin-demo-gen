@@ -12,6 +12,8 @@ export default function Home() {
   const [generationResult, setGenerationResult] = useState<any>(null)
   const [clearingSandbox, setClearingSandbox] = useState(false)
   const [clearSandboxResult, setClearSandboxResult] = useState<any>(null)
+  /** Metronome custom pricing unit (credit type) UUID for Hybrid — from GET /v1/credit-types/list or UI */
+  const [hybridPricingUnitId, setHybridPricingUnitId] = useState('')
 
   const handleApiKeySubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -297,10 +299,10 @@ export default function Home() {
             <div style={{
               fontSize: '0.95rem',
               color: '#1C1C1C',
-              lineHeight: '1.5',
-              opacity: 0.7,
+              lineHeight: '1.55',
+              opacity: 0.75,
             }}>
-              Generate a demo with hybrid billing model. Combines seat-based pricing with usage-based charges for a comprehensive billing solution.
+              Same catalog as AI Platform; usage rates use your <strong style={{ fontWeight: 600 }}>AI Credits</strong> pricing unit (1 credit = $0.01 USD). Create the unit in Metronome, then paste its UUID when you generate. See README.
             </div>
             {selectedDemoType === 'hybrid-seat' && (
               <div style={{
@@ -360,7 +362,9 @@ export default function Home() {
               ? 'Generate Infra SaaS Demo'
               : selectedDemoType === 'ai-token'
                 ? 'Generate AI Platform Demo'
-                : 'Next Steps'}
+                : selectedDemoType === 'hybrid-seat'
+                  ? 'Generate Hybrid Seat+ Usage Demo'
+                  : 'Next Steps'}
           </h3>
           
           {selectedDemoType === 'infra-saas' ? (
@@ -594,15 +598,168 @@ export default function Home() {
                 </div>
               )}
             </div>
-          ) : (
-            <p style={{
-              color: '#1C1C1C',
-              lineHeight: '1.6',
-              opacity: 0.8,
-            }}>
-              Hybrid Seat+ Usage demo configuration will be available here. You can set up customers, products, and usage events combining seat-based and usage-based billing.
-            </p>
-          )}
+          ) : selectedDemoType === 'hybrid-seat' ? (
+            <div>
+              <p style={{
+                color: '#1C1C1C',
+                lineHeight: '1.6',
+                opacity: 0.8,
+                marginBottom: '1rem',
+              }}>
+                Creates fixed catalog products, six token metrics, usage products, <strong style={{ fontWeight: 600 }}>Good / Better / Best Subscription</strong> seat SKUs, and a rate card: usage from <code style={{ fontSize: '0.9em' }}>data/ai-pricebook.csv</code> in your AI Credits unit; seats priced in USD cents (monthly + annual). Conversion is fixed at <strong style={{ fontWeight: 600 }}>1 AI Credit = $0.01 USD</strong>. Paste your custom pricing unit UUID (create “AI Credits” in Metronome first; list IDs via GET /v1/credit-types/list).
+              </p>
+              <label style={{
+                display: 'block',
+                fontSize: '0.9rem',
+                color: '#1C1C1C',
+                marginBottom: '0.35rem',
+                fontWeight: '600',
+              }}>
+                Custom pricing unit ID (UUID)
+              </label>
+              <input
+                type="text"
+                value={hybridPricingUnitId}
+                onChange={(e) => setHybridPricingUnitId(e.target.value)}
+                placeholder="e.g. 9bbde6c7-a1bb-4838-b625-daaa23673dac"
+                autoComplete="off"
+                spellCheck={false}
+                style={{
+                  width: '100%',
+                  maxWidth: '520px',
+                  padding: '0.6rem 0.75rem',
+                  fontSize: '0.9rem',
+                  fontFamily: 'ui-monospace, monospace',
+                  borderRadius: '8px',
+                  border: '1px solid #CCC',
+                  marginBottom: '1.25rem',
+                  boxSizing: 'border-box',
+                }}
+              />
+              <button
+                onClick={async () => {
+                  setLoading(true)
+                  setError('')
+                  setGenerationResult(null)
+
+                  try {
+                    const generateRes = await fetch('/api/hybrid/generate', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                      },
+                      body: JSON.stringify({
+                        apiKey,
+                        customPricingUnitId: hybridPricingUnitId.trim(),
+                      }),
+                    })
+
+                    const generateData = await generateRes.json()
+
+                    if (!generateRes.ok) {
+                      throw new Error(generateData.error || 'Failed to generate Hybrid demo')
+                    }
+
+                    setGenerationResult(generateData)
+                  } catch (err) {
+                    setError(err instanceof Error ? err.message : 'An error occurred')
+                  } finally {
+                    setLoading(false)
+                  }
+                }}
+                disabled={loading || !apiKey.trim() || !hybridPricingUnitId.trim()}
+                style={{
+                  padding: '0.75rem 1.5rem',
+                  fontSize: '1rem',
+                  backgroundColor: loading ? '#A6D96A' : '#6DC64B',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: loading || !apiKey.trim() || !hybridPricingUnitId.trim() ? 'not-allowed' : 'pointer',
+                  fontWeight: '600',
+                  transition: 'background-color 0.2s',
+                }}
+              >
+                {loading ? 'Generating...' : 'Generate Hybrid Seat+ Usage Demo'}
+              </button>
+
+              {generationResult && (
+                <div style={{
+                  marginTop: '1.5rem',
+                  padding: '1rem',
+                  backgroundColor: generationResult.success ? '#DFF0D8' : '#FFE5E5',
+                  borderRadius: '8px',
+                  border: `1px solid ${generationResult.success ? '#6DC64B' : '#FFB3B3'}`,
+                }}>
+                  <div style={{
+                    fontSize: '0.9rem',
+                    color: '#1C1C1C',
+                    marginBottom: '0.75rem',
+                    fontWeight: '600',
+                  }}>
+                    {generationResult.success ? '✓ Hybrid catalog created' : '⚠ Partial Success'}
+                  </div>
+                  <div style={{
+                    fontSize: '0.85rem',
+                    color: '#1C1C1C',
+                    opacity: 0.8,
+                    lineHeight: '1.8',
+                  }}>
+                    {generationResult.results && (
+                      <>
+                        {generationResult.results.hybridConversion && (
+                          <div>• Conversion: {generationResult.results.hybridConversion}</div>
+                        )}
+                        {generationResult.results.fixedProducts && Object.keys(generationResult.results.fixedProducts).length > 0 && (
+                          <div>
+                            • Fixed products: {Object.keys(generationResult.results.fixedProducts).length} ensured by name
+                            {Array.isArray(generationResult.results.fixedProductsCreated) && generationResult.results.fixedProductsCreated.length > 0
+                              ? ` — ${generationResult.results.fixedProductsCreated.length} newly created`
+                              : ''}
+                          </div>
+                        )}
+                        {generationResult.results.billableMetrics && Object.keys(generationResult.results.billableMetrics).length > 0 && (
+                          <div>• Created {Object.keys(generationResult.results.billableMetrics).length} billable metric{Object.keys(generationResult.results.billableMetrics).length !== 1 ? 's' : ''}</div>
+                        )}
+                        {generationResult.results.products && Object.keys(generationResult.results.products).length > 0 && (
+                          <div>• Created {Object.keys(generationResult.results.products).length} usage product{Object.keys(generationResult.results.products).length !== 1 ? 's' : ''}</div>
+                        )}
+                        {generationResult.results.subscriptionProducts &&
+                          Object.keys(generationResult.results.subscriptionProducts).length > 0 && (
+                          <div>
+                            • Seat subscriptions: {Object.keys(generationResult.results.subscriptionProducts).length} ensured
+                            {Array.isArray(generationResult.results.subscriptionProductsCreated) &&
+                            generationResult.results.subscriptionProductsCreated.length > 0
+                              ? ` — ${generationResult.results.subscriptionProductsCreated.length} newly created`
+                              : ''}
+                          </div>
+                        )}
+                        {generationResult.results.rateCards && Object.keys(generationResult.results.rateCards).length > 0 && (
+                          <div>• Created {Object.keys(generationResult.results.rateCards).length} rate card{Object.keys(generationResult.results.rateCards).length !== 1 ? 's' : ''}</div>
+                        )}
+                        {generationResult.results.ratesAdded && (
+                          <div>• {generationResult.results.ratesAdded}</div>
+                        )}
+                        {generationResult.results.subscriptionRatesAdded && (
+                          <div>• {generationResult.results.subscriptionRatesAdded}</div>
+                        )}
+                        {generationResult.results.errors && generationResult.results.errors.length > 0 && (
+                          <div style={{ marginTop: '0.5rem', color: '#C00' }}>
+                            <strong>Errors:</strong>
+                            <ul style={{ marginTop: '0.25rem', paddingLeft: '1.5rem' }}>
+                              {generationResult.results.errors.map((err: string, idx: number) => (
+                                <li key={idx} style={{ fontSize: '0.8rem' }}>{err}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : null}
         </div>
       )}
 
