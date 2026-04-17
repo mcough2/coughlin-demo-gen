@@ -606,7 +606,7 @@ export default function Home() {
                 opacity: 0.8,
                 marginBottom: '1rem',
               }}>
-                Creates fixed catalog products, six token metrics, usage products, <strong style={{ fontWeight: 600 }}>Good / Better / Best Subscription</strong> seat SKUs, a rate card (usage from <code style={{ fontSize: '0.9em' }}>data/ai-pricebook.csv</code> in your AI Credits unit; seats in USD cents), and an <strong style={{ fontWeight: 600 }}>example contract</strong> with Good + Best seat subscriptions and monthly recurring credits using <strong style={{ fontWeight: 600 }}>your custom pricing unit</strong> as <code style={{ fontSize: '0.9em' }}>credit_type_id</code>. Conversion is fixed at <strong style={{ fontWeight: 600 }}>1 AI Credit = $0.01 USD</strong>. Paste your custom pricing unit UUID (create “AI Credits” in Metronome first; list IDs via GET /v1/credit-types/list).
+                Creates fixed catalog products, six token metrics, usage products, <strong style={{ fontWeight: 600 }}>Good / Better / Best Subscription</strong> seat SKUs, a rate card (usage from <code style={{ fontSize: '0.9em' }}>data/ai-pricebook.csv</code> in your AI Credits unit; seats in USD cents), and an <strong style={{ fontWeight: 600 }}>example contract</strong> (enterprise customer) with <strong style={{ fontWeight: 600 }}>Better</strong> and <strong style={{ fontWeight: 600 }}>Best</strong> seat subscriptions only, each with one monthly recurring credit using <strong style={{ fontWeight: 600 }}>your custom pricing unit</strong> as <code style={{ fontSize: '0.9em' }}>credit_type_id</code> (<strong style={{ fontWeight: 600 }}>1200</strong> and <strong style={{ fontWeight: 600 }}>2500</strong> AI Credits per seat per month). Conversion is fixed at <strong style={{ fontWeight: 600 }}>1 AI Credit = $0.01 USD</strong>. Paste your custom pricing unit UUID (create “AI Credits” in Metronome first; list IDs via GET /v1/credit-types/list).
               </p>
               <label style={{
                 display: 'block',
@@ -743,6 +743,13 @@ export default function Home() {
                         {generationResult.results.subscriptionRatesAdded && (
                           <div>• {generationResult.results.subscriptionRatesAdded}</div>
                         )}
+                        {generationResult.results.packages &&
+                          Object.keys(generationResult.results.packages).length > 0 && (
+                          <div>
+                            • Packages created: {Object.keys(generationResult.results.packages).length}{' '}
+                            (Good/Better/Best × Monthly/Annual — recurring credits use fixed Credit + your credit type)
+                          </div>
+                        )}
                         {generationResult.results.referenceHybridContractId && (
                           <div>
                             • Reference hybrid contract (verified pattern):{' '}
@@ -806,11 +813,11 @@ export default function Home() {
             marginBottom: '1rem',
             lineHeight: '1.5',
           }}>
-            This will archive all customers, rate cards, products, and billable metrics in your account. This action cannot be undone.
+            This will archive all customers, packages, rate cards, products, and billable metrics in your account. This action cannot be undone.
           </p>
           <button
             onClick={async () => {
-              if (!confirm('Are you sure you want to clear the sandbox? This will archive all customers, rate cards, products, and billable metrics. This action cannot be undone.')) {
+              if (!confirm('Are you sure you want to clear the sandbox? This will archive all customers, packages, rate cards, products, and billable metrics. This action cannot be undone.')) {
                 return
               }
 
@@ -896,6 +903,9 @@ export default function Home() {
                     • Customers: {clearSandboxResult.summary.customersArchived}
                   </div>
                   <div>
+                    • Packages: {clearSandboxResult.summary.packagesArchived ?? 0}
+                  </div>
+                  <div>
                     • Rate Cards: {clearSandboxResult.summary.rateCardsArchived}
                   </div>
                   <div>
@@ -904,7 +914,6 @@ export default function Home() {
                   <div>
                     • Billable Metrics: {clearSandboxResult.summary.billableMetricsArchived}
                   </div>
-                  {/* Packages archiving disabled - packages can't be archived via API */}
                 </div>
               )}
               {clearSandboxResult.errors && clearSandboxResult.errors.length > 0 && (

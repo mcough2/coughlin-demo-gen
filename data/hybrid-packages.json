@@ -1,0 +1,47 @@
+[
+  {
+    "name": "Good (Monthly)",
+    "subscription": "Good Subscription",
+    "billing_frequency": "MONTHLY",
+    "recurring_credit_ai_credits": 500,
+    "recurring_credit_note": "Include AI Credits for Good Subscription"
+  },
+  {
+    "name": "Good (Annual)",
+    "subscription": "Good Subscription",
+    "billing_frequency": "ANNUAL",
+    "recurring_credit_ai_credits": 500,
+    "recurring_credit_recurrence": "MONTHLY",
+    "recurring_credit_note": "Included AI Credits for Good Subscription"
+  },
+  {
+    "name": "Better (Monthly)",
+    "subscription": "Better Subscription",
+    "billing_frequency": "MONTHLY",
+    "recurring_credit_ai_credits": 1000,
+    "recurring_credit_note": "Included AI Credits for Better Subscription"
+  },
+  {
+    "name": "Better (Annual)",
+    "subscription": "Better Subscription",
+    "billing_frequency": "ANNUAL",
+    "recurring_credit_ai_credits": 1000,
+    "recurring_credit_recurrence": "MONTHLY",
+    "recurring_credit_note": "Included AI Credits for Better Subscription"
+  },
+  {
+    "name": "Best (Monthly)",
+    "subscription": "Best Subscription",
+    "billing_frequency": "MONTHLY",
+    "recurring_credit_ai_credits": 2000,
+    "recurring_credit_note": "Included AI Credits for Best Subscription"
+  },
+  {
+    "name": "Best (Annual)",
+    "subscription": "Best Subscription",
+    "billing_frequency": "ANNUAL",
+    "recurring_credit_ai_credits": 2000,
+    "recurring_credit_recurrence": "MONTHLY",
+    "recurring_credit_note": "Included AI Credits for Best Subscription"
+  }
+]

@@ -225,7 +225,7 @@ async function listAllPackages(apiKey: string): Promise<string[]> {
     const packages = responseJson.data || []
 
     for (const pkg of packages) {
-      // Packages don't have archived_at, so we archive all
+      if (pkg.archived_at) continue
       packageIds.push(pkg.id)
     }
 
@@ -388,23 +388,20 @@ async function archivePackages(apiKey: string, packageIds: string[]): Promise<Ar
             'Authorization': `Bearer ${apiKey}`,
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({ id: packageId })
+          body: JSON.stringify({ package_id: packageId })
         }
       )
 
       if (!response.ok) {
         const errorText = await response.text()
-        let errorData: any
+        let errorData: unknown
         try {
           errorData = JSON.parse(errorText)
         } catch {
           errorData = { message: errorText }
         }
-        
-        // If 404, the package might not exist or might not be archivable - skip silently
-        // Packages may not support archiving through the API
+
         if (response.status === 404) {
-          // Package archiving not supported, skipping
           continue
         }
         errors.push(`Package ${packageId}: ${response.status} - ${JSON.stringify(errorData)}`)
@@ -442,36 +439,33 @@ export async function POST(request: NextRequest) {
         results.push(customerResult)
       }
 
-      // 2. Archive all rate cards
+      // 2. Archive packages (after customers clear contracts; before rate cards)
+      const packageIds = await listAllPackages(apiKey)
+      if (packageIds.length > 0) {
+        const packageResult = await archivePackages(apiKey, packageIds)
+        results.push(packageResult)
+      }
+
+      // 3. Archive all rate cards
       const rateCardIds = await listAllRateCards(apiKey)
       if (rateCardIds.length > 0) {
         const rateCardResult = await archiveRateCards(apiKey, rateCardIds)
         results.push(rateCardResult)
       }
 
-      // 3. Archive all products
+      // 4. Archive all products
       const productIds = await listAllProducts(apiKey)
       if (productIds.length > 0) {
         const productResult = await archiveProducts(apiKey, productIds)
         results.push(productResult)
       }
 
-      // 4. Archive all billable metrics
+      // 5. Archive all billable metrics
       const metricIds = await listAllBillableMetrics(apiKey)
       if (metricIds.length > 0) {
         const metricResult = await archiveBillableMetrics(apiKey, metricIds)
         results.push(metricResult)
       }
-
-      // 5. Archive all packages
-      // NOTE: Packages cannot be archived via API currently - keeping code for future use
-      // console.log('Fetching packages...')
-      // const packageIds = await listAllPackages(apiKey)
-      // console.log(`Found ${packageIds.length} packages to archive`)
-      // if (packageIds.length > 0) {
-      //   const packageResult = await archivePackages(apiKey, packageIds)
-      //   results.push(packageResult)
-      // }
 
       const totalArchived = results.reduce((sum, r) => sum + r.archived, 0)
       const totalErrors = results.reduce((sum, r) => sum + r.errors.length, 0)
@@ -487,7 +481,7 @@ export async function POST(request: NextRequest) {
           rateCardsArchived: results.find(r => r.type === 'rate_cards')?.archived || 0,
           productsArchived: results.find(r => r.type === 'products')?.archived || 0,
           billableMetricsArchived: results.find(r => r.type === 'billable_metrics')?.archived || 0,
-          // packagesArchived: results.find(r => r.type === 'packages')?.archived || 0, // Disabled - packages can't be archived
+          packagesArchived: results.find(r => r.type === 'packages')?.archived || 0,
         },
         errors: allErrors,
         message: totalErrors === 0

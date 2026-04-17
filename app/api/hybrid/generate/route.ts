@@ -5,6 +5,7 @@ import {
   addAiRatesFromCSV,
   addHybridSeatSubscriptionRates,
   createBillableMetrics,
+  createHybridPackageTemplates,
   createHybridSeatUsageContract,
   createHybridSeatUsageRateCard,
   createProducts,
@@ -54,7 +55,8 @@ export async function POST(request: NextRequest) {
       rateCards: Record<string, string>
       ratesAdded?: string
       subscriptionRatesAdded?: string
-      hybridContract?: { customerId: string; contractId: string; ingestAlias: string }
+      packages?: Record<string, string>
+      hybridContract?: { customerId: string; contractId: string; ingestAlias?: string }
       hybridConversion: string
       errors: string[]
     } = {
@@ -146,6 +148,31 @@ export async function POST(request: NextRequest) {
         rateCardId &&
         creditProductId &&
         results.subscriptionProducts['Good Subscription'] &&
+        results.subscriptionProducts['Better Subscription'] &&
+        results.subscriptionProducts['Best Subscription']
+      ) {
+        const pkgResult = await createHybridPackageTemplates(apiKey, {
+          rateCardId,
+          creditTypeId: id,
+          creditFixedProductId: creditProductId,
+          subscriptionProductIds: results.subscriptionProducts,
+        })
+        results.packages = pkgResult.created
+        for (const e of pkgResult.errors) {
+          results.errors.push(`Package: ${e}`)
+        }
+      }
+    } catch (error) {
+      results.errors.push(`Packages: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+
+    try {
+      const rateCardId = results.rateCards[HYBRID_RATE_CARD_NAME]
+      const creditProductId = results.fixedProducts['Credit']
+      if (
+        rateCardId &&
+        creditProductId &&
+        results.subscriptionProducts['Better Subscription'] &&
         results.subscriptionProducts['Best Subscription']
       ) {
         results.hybridContract = await createHybridSeatUsageContract(apiKey, {
@@ -165,7 +192,7 @@ export async function POST(request: NextRequest) {
       results,
       message:
         results.errors.length === 0
-          ? 'Hybrid Seat+ Usage catalog created: metrics, usage + subscription products, rate card, usage (AI Credits) + seat (USD) rates, and example contract (recurring credits use your credit type id)'
+          ? 'Hybrid Seat+ Usage catalog created: metrics, usage + subscription products, rate card, usage (AI Credits) + seat (USD) rates, six packages, and example contract (recurring credits use your credit type id)'
           : 'Some objects were created, but errors occurred',
     })
   } catch (error) {
