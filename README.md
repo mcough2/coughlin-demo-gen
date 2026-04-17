@@ -106,7 +106,7 @@ What makes it **hybrid**:
 
 The in-app **AI Platform** generator today creates a **USD-only** list rate card from `data/ai-pricebook.csv`. A **hybrid** card in a live account is the same catalog, extended with **seat** SKUs and **usage** SKUs priced in **AI Credits** as above.
 
-**Generator:** `POST /api/hybrid/generate` with `{ "apiKey", "customPricingUnitId" }` creates the same usage metrics/products as AI Platform, **Good / Better / Best Subscription** seat products (`type: subscription`), a **Hybrid Seat+ Usage Rate Card** with `credit_type_conversions` (1 cent fiat per 1 AI Credit), **`data/ai-pricebook.csv`** usage rates in AI Credits, and **six subscription list rates** (monthly + annual per tier, USD cents). The webapp exposes this under **Hybrid Seat+ Usage** (UUID field + Generate).
+**Generator:** `POST /api/hybrid/generate` with `{ "apiKey", "customPricingUnitId" }` creates the same usage metrics/products as AI Platform, **Good / Better / Best Subscription** seat products (`type: subscription`), a **Hybrid Seat+ Usage Rate Card** with `credit_type_conversions` (1 cent fiat per 1 AI Credit), **`data/ai-pricebook.csv`** usage rates in AI Credits, **six subscription list rates** (monthly + annual per tier, USD cents), and a **demo contract** on a new customer: **Good** + **Best** seat subscriptions (`SEAT_BASED`) and **monthly recurring credits** on the fixed **Credit** product with `access_amount.credit_type_id` set to your **custom pricing unit** UUID. The response includes `referenceHybridContractId` **`5a48050e-a5f0-460b-b434-d381ed8fccd0`** (documented example) and `hybridContract` (ids for the run). The webapp exposes this under **Hybrid Seat+ Usage** (UUID field + Generate).
 
 ## Project Structure
 

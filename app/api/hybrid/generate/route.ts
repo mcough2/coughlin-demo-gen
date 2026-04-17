@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import {
+  HYBRID_EXAMPLE_CONTRACT_ID,
   HYBRID_RATE_CARD_NAME,
   addAiRatesFromCSV,
   addHybridSeatSubscriptionRates,
   createBillableMetrics,
+  createHybridSeatUsageContract,
   createHybridSeatUsageRateCard,
   createProducts,
   ensureFixedProducts,
@@ -42,6 +44,7 @@ export async function POST(request: NextRequest) {
     const id = customPricingUnitId.trim()
 
     const results: {
+      referenceHybridContractId: string
       fixedProducts: Record<string, string>
       fixedProductsCreated: string[]
       billableMetrics: Record<string, string>
@@ -51,9 +54,11 @@ export async function POST(request: NextRequest) {
       rateCards: Record<string, string>
       ratesAdded?: string
       subscriptionRatesAdded?: string
+      hybridContract?: { customerId: string; contractId: string; ingestAlias: string }
       hybridConversion: string
       errors: string[]
     } = {
+      referenceHybridContractId: HYBRID_EXAMPLE_CONTRACT_ID,
       fixedProducts: {},
       fixedProductsCreated: [],
       billableMetrics: {},
@@ -134,12 +139,33 @@ export async function POST(request: NextRequest) {
       results.errors.push(`Subscription rates: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
 
+    try {
+      const rateCardId = results.rateCards[HYBRID_RATE_CARD_NAME]
+      const creditProductId = results.fixedProducts['Credit']
+      if (
+        rateCardId &&
+        creditProductId &&
+        results.subscriptionProducts['Good Subscription'] &&
+        results.subscriptionProducts['Best Subscription']
+      ) {
+        results.hybridContract = await createHybridSeatUsageContract(apiKey, {
+          rateCardId,
+          creditTypeId: id,
+          subscriptionProductIds: results.subscriptionProducts,
+          creditFixedProductId: creditProductId,
+          usageProductIds: results.products,
+        })
+      }
+    } catch (error) {
+      results.errors.push(`Hybrid contract: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+
     return NextResponse.json({
       success: results.errors.length === 0,
       results,
       message:
         results.errors.length === 0
-          ? 'Hybrid Seat+ Usage catalog created: metrics, usage + subscription products, rate card, usage (AI Credits) + seat (USD) rates'
+          ? 'Hybrid Seat+ Usage catalog created: metrics, usage + subscription products, rate card, usage (AI Credits) + seat (USD) rates, and example contract (recurring credits use your credit type id)'
           : 'Some objects were created, but errors occurred',
     })
   } catch (error) {

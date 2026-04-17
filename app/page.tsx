@@ -606,7 +606,7 @@ export default function Home() {
                 opacity: 0.8,
                 marginBottom: '1rem',
               }}>
-                Creates fixed catalog products, six token metrics, usage products, <strong style={{ fontWeight: 600 }}>Good / Better / Best Subscription</strong> seat SKUs, and a rate card: usage from <code style={{ fontSize: '0.9em' }}>data/ai-pricebook.csv</code> in your AI Credits unit; seats priced in USD cents (monthly + annual). Conversion is fixed at <strong style={{ fontWeight: 600 }}>1 AI Credit = $0.01 USD</strong>. Paste your custom pricing unit UUID (create “AI Credits” in Metronome first; list IDs via GET /v1/credit-types/list).
+                Creates fixed catalog products, six token metrics, usage products, <strong style={{ fontWeight: 600 }}>Good / Better / Best Subscription</strong> seat SKUs, a rate card (usage from <code style={{ fontSize: '0.9em' }}>data/ai-pricebook.csv</code> in your AI Credits unit; seats in USD cents), and an <strong style={{ fontWeight: 600 }}>example contract</strong> with Good + Best seat subscriptions and monthly recurring credits using <strong style={{ fontWeight: 600 }}>your custom pricing unit</strong> as <code style={{ fontSize: '0.9em' }}>credit_type_id</code>. Conversion is fixed at <strong style={{ fontWeight: 600 }}>1 AI Credit = $0.01 USD</strong>. Paste your custom pricing unit UUID (create “AI Credits” in Metronome first; list IDs via GET /v1/credit-types/list).
               </p>
               <label style={{
                 display: 'block',
@@ -742,6 +742,21 @@ export default function Home() {
                         )}
                         {generationResult.results.subscriptionRatesAdded && (
                           <div>• {generationResult.results.subscriptionRatesAdded}</div>
+                        )}
+                        {generationResult.results.referenceHybridContractId && (
+                          <div>
+                            • Reference hybrid contract (verified pattern):{' '}
+                            <code style={{ fontSize: '0.85em' }}>{generationResult.results.referenceHybridContractId}</code>
+                          </div>
+                        )}
+                        {generationResult.results.hybridContract && (
+                          <div>
+                            • New demo contract:{' '}
+                            <code style={{ fontSize: '0.85em' }}>{generationResult.results.hybridContract.contractId}</code>
+                            {' '}(customer{' '}
+                            <code style={{ fontSize: '0.85em' }}>{generationResult.results.hybridContract.customerId}</code>
+                            , ingest <code style={{ fontSize: '0.85em' }}>{generationResult.results.hybridContract.ingestAlias}</code>)
+                          </div>
                         )}
                         {generationResult.results.errors && generationResult.results.errors.length > 0 && (
                           <div style={{ marginTop: '0.5rem', color: '#C00' }}>

@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto'
 import { readFileSync } from 'fs'
 import { join } from 'path'
 
@@ -14,6 +15,34 @@ export const FIAT_USD_CENTS_CREDIT_TYPE_ID = '2714e483-4ff1-48e4-9e25-ac732e8f24
 export const FIAT_CENTS_PER_AI_CREDIT = 1
 
 export const HYBRID_RATE_CARD_NAME = 'Hybrid Seat+ Usage Rate Card'
+
+/**
+ * Reference contract created with the hybrid seat + recurring AI Credits pattern
+ * (Good / Best subscriptions, SEAT_BASED, recurring_credits use account credit_type_id).
+ */
+export const HYBRID_EXAMPLE_CONTRACT_ID = '5a48050e-a5f0-460b-b434-d381ed8fccd0'
+
+/** Cross-references `subscription_config.subscription_id` in the same contracts/create payload. */
+export const HYBRID_TMP_SUBSCRIPTION_GOOD = 'tmpsub-hybrid-good'
+export const HYBRID_TMP_SUBSCRIPTION_BEST = 'tmpsub-hybrid-best'
+
+export const HYBRID_GOOD_INITIAL_SEAT_USER_IDS: readonly string[] = [
+  'alex_001',
+  'jamie_002',
+  'taylor_003',
+  'morgan_004',
+  'casey_005',
+  'riley_006',
+  'jordan_007',
+  'avery_008',
+  'quinn_009',
+  'blake_010',
+]
+
+export const HYBRID_BEST_INITIAL_SEAT_USER_IDS: readonly string[] = ['dakota_011', 'skyler_012']
+
+/** AI Credits granted per seat per month (custom credit unit); recurring_credits access_amount.unit_price */
+const HYBRID_RECURRING_CREDIT_UNIT_PRICE_PER_SEAT = 1_000_000
 
 /** Seat SKUs for Hybrid (subscription products; rates in USD cents on the rate card). */
 export const HYBRID_SEAT_SUBSCRIPTION_DEFS: ReadonlyArray<{ name: string; tags: string[] }> = [
@@ -790,4 +819,193 @@ export async function addHybridSeatSubscriptionRates(
   const rates = buildHybridSeatSubscriptionRates(productNameToId, startingAt)
   const r = await addRatesToRateCard(apiKey, rateCardId, rates)
   return { ratesSent: r.totalSent, errors: r.errors }
+}
+
+/** UTC midnight on the first day of the current month (contract / subscription starts). */
+export function metronomeFirstOfMonthUtc(): string {
+  const n = new Date()
+  return new Date(Date.UTC(n.getUTCFullYear(), n.getUTCMonth(), 1, 0, 0, 0, 0)).toISOString()
+}
+
+/**
+ * Creates a demo customer and hybrid contract: SEAT_BASED Good + Best subscriptions,
+ * monthly recurring credits on the fixed "Credit" product with
+ * `access_amount.credit_type_id` = `creditTypeId` (the custom pricing unit from the UI).
+ */
+/** 20% discount: list × 0.8 */
+const HYBRID_CONTRACT_MULTIPLIER = 0.8
+
+export async function createHybridSeatUsageContract(
+  apiKey: string,
+  options: {
+    rateCardId: string
+    /** Metronome custom pricing unit UUID — same as hybrid rate card AI Credits id */
+    creditTypeId: string
+    subscriptionProductIds: Record<string, string>
+    creditFixedProductId: string
+    /** Usage product name → id (e.g. from createProducts); Chat-* rows get multiplier overrides */
+    usageProductIds?: Record<string, string>
+  }
+): Promise<{ customerId: string; contractId: string; ingestAlias: string }> {
+  const goodId = options.subscriptionProductIds['Good Subscription']
+  const bestId = options.subscriptionProductIds['Best Subscription']
+  if (!goodId || !bestId) {
+    throw new Error(
+      'Good Subscription and Best Subscription product ids are required (ensure seat SKUs exist).'
+    )
+  }
+  if (!options.creditFixedProductId) {
+    throw new Error('Fixed product "Credit" id is required for recurring_credits.')
+  }
+
+  const startingAt = metronomeFirstOfMonthUtc()
+  const ingestAlias = `hybrid-seat-demo-${randomUUID().slice(0, 8)}`
+
+  const customerRes = await fetch(`${METRONOME_API_URL}/customers`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      name: 'enterprise customer',
+      ingest_aliases: [ingestAlias],
+    }),
+  })
+  const customerJson = await customerRes.json()
+  if (!customerRes.ok) {
+    throw new Error(`Failed to create customer: ${JSON.stringify(customerJson)}`)
+  }
+  const customerId = customerJson.data?.id as string
+  if (!customerId) {
+    throw new Error(`No customer id in response: ${JSON.stringify(customerJson)}`)
+  }
+
+  const usageMap = options.usageProductIds ?? {}
+  const overrides: Array<{
+    product_id: string
+    type: 'MULTIPLIER'
+    multiplier: number
+    starting_at: string
+  }> = []
+
+  for (const def of HYBRID_SEAT_SUBSCRIPTION_DEFS) {
+    const pid = options.subscriptionProductIds[def.name]
+    if (pid) {
+      overrides.push({
+        product_id: pid,
+        type: 'MULTIPLIER',
+        multiplier: HYBRID_CONTRACT_MULTIPLIER,
+        starting_at: startingAt,
+      })
+    }
+  }
+
+  for (const [name, pid] of Object.entries(usageMap)) {
+    if (!name.startsWith('Chat -')) continue
+    overrides.push({
+      product_id: pid,
+      type: 'MULTIPLIER',
+      multiplier: HYBRID_CONTRACT_MULTIPLIER,
+      starting_at: startingAt,
+    })
+  }
+
+  const body: Record<string, unknown> = {
+    customer_id: customerId,
+    starting_at: startingAt,
+    name: 'Hybrid Seat+ Usage example contract',
+    rate_card_id: options.rateCardId,
+    subscriptions: [
+      {
+        collection_schedule: 'ADVANCE',
+        proration: {
+          is_prorated: false,
+          invoice_behavior: 'BILL_IMMEDIATELY',
+        },
+        subscription_rate: {
+          product_id: goodId,
+          billing_frequency: 'MONTHLY',
+        },
+        quantity_management_mode: 'SEAT_BASED',
+        temporary_id: HYBRID_TMP_SUBSCRIPTION_GOOD,
+        seat_config: {
+          seat_group_key: 'user_id',
+          initial_seat_ids: [...HYBRID_GOOD_INITIAL_SEAT_USER_IDS],
+        },
+      },
+      {
+        collection_schedule: 'ADVANCE',
+        proration: {
+          is_prorated: false,
+          invoice_behavior: 'BILL_IMMEDIATELY',
+        },
+        subscription_rate: {
+          product_id: bestId,
+          billing_frequency: 'MONTHLY',
+        },
+        quantity_management_mode: 'SEAT_BASED',
+        temporary_id: HYBRID_TMP_SUBSCRIPTION_BEST,
+        seat_config: {
+          seat_group_key: 'user_id',
+          initial_seat_ids: [...HYBRID_BEST_INITIAL_SEAT_USER_IDS],
+        },
+      },
+    ],
+    recurring_credits: [
+      {
+        product_id: options.creditFixedProductId,
+        starting_at: startingAt,
+        priority: 1,
+        commit_duration: { value: 1, unit: 'PERIODS' },
+        recurrence_frequency: 'MONTHLY',
+        access_amount: {
+          credit_type_id: options.creditTypeId,
+          unit_price: HYBRID_RECURRING_CREDIT_UNIT_PRICE_PER_SEAT,
+        },
+        subscription_config: {
+          subscription_id: HYBRID_TMP_SUBSCRIPTION_GOOD,
+          allocation: 'INDIVIDUAL',
+          apply_seat_increase_config: { is_prorated: false },
+        },
+      },
+      {
+        product_id: options.creditFixedProductId,
+        starting_at: startingAt,
+        priority: 2,
+        commit_duration: { value: 1, unit: 'PERIODS' },
+        recurrence_frequency: 'MONTHLY',
+        access_amount: {
+          credit_type_id: options.creditTypeId,
+          unit_price: HYBRID_RECURRING_CREDIT_UNIT_PRICE_PER_SEAT,
+        },
+        subscription_config: {
+          subscription_id: HYBRID_TMP_SUBSCRIPTION_BEST,
+          allocation: 'INDIVIDUAL',
+          apply_seat_increase_config: { is_prorated: false },
+        },
+      },
+    ],
+    overrides,
+    uniqueness_key: randomUUID(),
+  }
+
+  const contractRes = await fetch(`${METRONOME_API_URL}/contracts/create`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  })
+  const contractJson = await contractRes.json()
+  if (!contractRes.ok) {
+    throw new Error(`Failed to create hybrid contract: ${JSON.stringify(contractJson)}`)
+  }
+  const contractId = contractJson.data?.id as string | undefined
+  if (!contractId) {
+    throw new Error(`No contract id in response: ${JSON.stringify(contractJson)}`)
+  }
+
+  return { customerId, contractId, ingestAlias }
 }
