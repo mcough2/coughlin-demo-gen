@@ -12,7 +12,7 @@ Ask the user: **"Which demo type do you want to generate?"**
 **Options**:
 1. **AI Platform** — Catalog only (6 billable metrics, 6 usage products, AI Platform Standard Rate Card with per-model/per-direction pricing). No customers or usage events. Best for AI API / developer platform prospects.
 2. **Infra SaaS** — Full environment (4 metrics, 7 products, Standard Rate Card with multi-cloud pricing, 3 customers with contracts, synthetic hourly usage already ingested). Best for cloud infra / DevOps prospects.
-3. **Hybrid Seat + Usage** — AI Platform catalog plus seat subscription products, hybrid rate card with AI Credits, 6 package templates, and an example contract. Requires an "AI Credits" custom pricing unit UUID from the Metronome Dashboard. Best for SaaS prospects adding AI billing.
+3. **Hybrid Seat + Usage** — AI Platform catalog plus seat subscription products, hybrid rate card with AI Credits, 6 package templates, and an example contract. Best for SaaS prospects adding AI billing.
 
 ---
 
@@ -22,8 +22,7 @@ Ask the user: **"Which demo type do you want to generate?"**
 - Metronome API key (if not already known from context or a previous message this session)
 - Whether to clear the sandbox first (recommend yes if re-running)
 
-**Hybrid only**:
-- AI Credits custom pricing unit UUID — they create this in the Metronome Dashboard under Offering → Custom Pricing Units (1 AI Credit = $0.01 USD), then retrieve it via `GET https://api.metronome.com/v1/credit-types/list` or copy from the Dashboard.
+**Hybrid only**: No additional inputs required — the AI Credits custom pricing unit is created automatically via API in step 4.1.
 
 ---
 
@@ -653,10 +652,31 @@ Save the script to `/tmp/infra_usage.py`, then run with: `python3 -I /tmp/infra_
 
 ### Hybrid Seat + Usage
 
-#### 4.1 Ensure fixed products
+#### 4.1 Create the AI Credits custom pricing unit
+
+```bash
+curl -s -X POST "https://api.metronome.com/v1/credit-types/create" \
+  -H "Authorization: Bearer $METRONOME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "AI Credits", "client_id": "ai_credits"}'
+```
+
+Capture: `ai_credits_uuid = data.id`.
+
+If the call returns a duplicate error (credit type already exists), retrieve the existing UUID:
+
+```bash
+curl -s -X GET "https://api.metronome.com/v1/credit-types/list" \
+  -H "Authorization: Bearer $METRONOME_API_KEY" \
+  -H "Content-Type: application/json"
+```
+
+Find the entry with `name: "AI Credits"` and capture its `id`.
+
+#### 4.2 Ensure fixed products
 Same as AI Platform step 4.3. You need the `Credit` product ID specifically for recurring credits.
 
-#### 4.2–4.4 Create AI Platform catalog
+#### 4.3–4.4 Create AI Platform catalog
 Run AI Platform steps 4.1–4.2 (6 billable metrics + 6 usage products). Capture all product IDs.
 
 #### 4.5 Create 3 seat subscription products
@@ -673,11 +693,11 @@ Run AI Platform steps 4.1–4.2 (6 billable metrics + 6 usage products). Capture
 
 ```json
 {
-  "name": "Hybrid Seat+ Usage Rate Card",
+  "name": "Hybrid Seats + Usage Rate Card",
   "description": "Hybrid Seat+ Usage: token usage from ai-pricebook priced in AI Credits; 1 AI Credit = $0.01 USD.",
   "fiat_credit_type_id": "2714e483-4ff1-48e4-9e25-ac732e8f24f2",
   "credit_type_conversions": [{
-    "custom_credit_type_id": "<AI_CREDITS_UUID>",
+    "custom_credit_type_id": "<ai_credits_uuid from step 4.1>",
     "fiat_per_custom_credit": 1
   }]
 }
@@ -687,7 +707,7 @@ Capture: `hybrid_rate_card_id`.
 
 #### 4.7 Add AI usage rates (with credit_type_id)
 
-Same as AI Platform step 4.5, but add `"credit_type_id": "<AI_CREDITS_UUID>"` to every rate object. Price values stay as floats (no cents conversion).
+Same as AI Platform step 4.5, but add `"credit_type_id": "<ai_credits_uuid from step 4.1>"` to every rate object. Price values stay as floats (no cents conversion).
 
 #### 4.8 Add seat subscription rates
 
@@ -746,7 +766,7 @@ Template body for each (generate a unique UUID for `tmplSubId` and `uniqueness_k
     "product_id": "<Credit fixed product id>",
     "access_amount": {
       "unit_price": <RECURRING_CREDIT_UNIT_PRICE>,
-      "credit_type_id": "<AI_CREDITS_UUID>"
+      "credit_type_id": "<ai_credits_uuid from step 4.1>"
     },
     "priority": 1,
     "rate_type": "LIST_RATE",
@@ -812,13 +832,13 @@ Generate unique UUIDs for `BETTER_TMP_ID` and `BEST_TMP_ID`.
   ],
   "recurring_credits": [
     {
-      "name": "include credits for better subscriptions",
+      "name": "included credits for better subscription",
       "product_id": "<Credit fixed product id>",
       "starting_at": "<start_date>",
       "priority": 1,
       "commit_duration": {"value": 1, "unit": "PERIODS"},
       "recurrence_frequency": "MONTHLY",
-      "access_amount": {"credit_type_id": "<AI_CREDITS_UUID>", "unit_price": 1200},
+      "access_amount": {"credit_type_id": "<ai_credits_uuid from step 4.1>", "unit_price": 1200},
       "subscription_config": {
         "subscription_id": "<BETTER_TMP_ID>",
         "allocation": "INDIVIDUAL",
@@ -826,13 +846,13 @@ Generate unique UUIDs for `BETTER_TMP_ID` and `BEST_TMP_ID`.
       }
     },
     {
-      "name": "include credits for best subscriptions",
+      "name": "included credits for best subscriptions",
       "product_id": "<Credit fixed product id>",
       "starting_at": "<start_date>",
       "priority": 2,
       "commit_duration": {"value": 1, "unit": "PERIODS"},
       "recurrence_frequency": "MONTHLY",
-      "access_amount": {"credit_type_id": "<AI_CREDITS_UUID>", "unit_price": 2500},
+      "access_amount": {"credit_type_id": "<ai_credits_uuid from step 4.1>", "unit_price": 2500},
       "subscription_config": {
         "subscription_id": "<BEST_TMP_ID>",
         "allocation": "INDIVIDUAL",
@@ -852,6 +872,79 @@ Generate unique UUIDs for `BETTER_TMP_ID` and `BEST_TMP_ID`.
 ```
 
 **Verification**: Everything from AI Platform + 3 seat products, hybrid rate card, 6 package templates, 1 example customer in the Dashboard.
+
+#### 4.11 Ingest usage events for the example customer
+
+Write a Python script to send 14 days of daily `ai_platform.usage` events across 6 rate combos, targeting ~300 AI Credits total. Use the ingest alias from step 4.10.
+
+```python
+import uuid, datetime, json, urllib.request
+
+API_KEY = "<METRONOME_API_KEY>"
+INGEST_URL = "https://api.metronome.com/v1/ingest"
+CUSTOMER_ALIAS = "<hybrid-seat-demo ingest alias>"
+
+# 14 daily events: first day of current month through today at noon UTC
+now = datetime.datetime.utcnow()
+start = datetime.datetime(now.year, now.month, 1, 12, 0, 0)
+days = []
+t = start
+while t <= now.replace(hour=12, minute=0, second=0, microsecond=0):
+    days.append(t)
+    t += datetime.timedelta(days=1)
+
+# 6 rate combos, ~50 AI Credits each = ~300 total
+# Formula: tokens_per_event = 50 / rate_per_MTok * 1_000_000 / len(days)
+rates = [
+    {"api_product": "chat",           "model": "gpt-5.4-mini",      "processing_tier": "standard", "upstream_provider": "openai",    "token_key": "input_tokens",  "tokens_per_day": 4761905, "user_id": "alex_001",   "team_id": "team-eng", "project_id": "proj-chat"},
+    {"api_product": "chat",           "model": "gpt-5.4-mini",      "processing_tier": "standard", "upstream_provider": "openai",    "token_key": "output_tokens", "tokens_per_day": 793651,  "user_id": "jamie_002",  "team_id": "team-eng", "project_id": "proj-chat"},
+    {"api_product": "code_assist",    "model": "claude-sonnet-4-6", "processing_tier": "standard", "upstream_provider": "anthropic", "token_key": "input_tokens",  "tokens_per_day": 1190476, "user_id": "taylor_003", "team_id": "team-eng", "project_id": "proj-code"},
+    {"api_product": "code_assist",    "model": "claude-sonnet-4-6", "processing_tier": "standard", "upstream_provider": "anthropic", "token_key": "output_tokens", "tokens_per_day": 238095,  "user_id": "morgan_004", "team_id": "team-eng", "project_id": "proj-code"},
+    {"api_product": "realtime_voice", "model": "gpt-realtime-1.5",  "processing_tier": "standard", "upstream_provider": "openai",    "token_key": "input_tokens",  "tokens_per_day": 111607,  "user_id": "dakota_011", "team_id": "team-ops", "project_id": "proj-voice"},
+    {"api_product": "realtime_voice", "model": "gpt-realtime-1.5",  "processing_tier": "standard", "upstream_provider": "openai",    "token_key": "output_tokens", "tokens_per_day": 55804,   "user_id": "skyler_012", "team_id": "team-ops", "project_id": "proj-voice"},
+]
+
+events = []
+for day in days:
+    ts = day.strftime("%Y-%m-%dT%H:%M:%SZ")
+    for r in rates:
+        events.append({
+            "transaction_id": str(uuid.uuid4()),
+            "customer_id": CUSTOMER_ALIAS,
+            "event_type": "ai_platform.usage",
+            "timestamp": ts,
+            "properties": {
+                r["token_key"]: r["tokens_per_day"],
+                "api_product": r["api_product"],
+                "model": r["model"],
+                "processing_tier": r["processing_tier"],
+                "upstream_provider": r["upstream_provider"],
+                "user_id": r["user_id"],
+                "team_id": r["team_id"],
+                "project_id": r["project_id"],
+            },
+        })
+
+sent = 0
+for i in range(0, len(events), 100):
+    batch = events[i:i+100]
+    data = json.dumps(batch).encode()
+    req = urllib.request.Request(INGEST_URL, data=data, headers={"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}, method="POST")
+    with urllib.request.urlopen(req) as resp:
+        sent += len(batch)
+
+print(f"Sent {sent} events (~300 AI Credits across 6 rates × {len(days)} days)")
+```
+
+Save to `/tmp/hybrid_usage.py`, then run with: `python3 -I /tmp/hybrid_usage.py`
+
+**Rate breakdown** (~50 AI Credits each):
+- Chat Input / gpt-5.4-mini / standard (0.75 credits/MTok) — user: alex_001
+- Chat Output / gpt-5.4-mini / standard (4.5 credits/MTok) — user: jamie_002
+- Code Assist Input / claude-sonnet-4-6 / standard (3 credits/MTok) — user: taylor_003
+- Code Assist Output / claude-sonnet-4-6 / standard (15 credits/MTok) — user: morgan_004
+- Voice Input / gpt-realtime-1.5 / standard (32 credits/MTok) — user: dakota_011
+- Voice Output / gpt-realtime-1.5 / standard (64 credits/MTok) — user: skyler_012
 
 ---
 
