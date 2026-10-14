@@ -804,7 +804,7 @@ Generate unique UUIDs for `BETTER_TMP_ID` and `BEST_TMP_ID`.
 {
   "customer_id": "<CUSTOMER_ID>",
   "starting_at": "<start_date>",
-  "name": "Hybrid Seat+ Usage example contract",
+  "name": "Hybrid Seats + Usage Example Contract",
   "rate_card_id": "<HYBRID_RATE_CARD_ID>",
   "subscriptions": [
     {
