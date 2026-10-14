@@ -2,15 +2,13 @@
 
 Use this skill to spin up a Metronome demo environment. It makes direct API calls to `https://api.metronome.com/v1` — no local app required.
 
-Invoke with `/metronome-demo` or when the user says "create a Metronome demo", "run the demo generator", "generate a Metronome environment".
+This is a Claude Code skill. Invoke with `/metronome-demo` or when the user says "create a Metronome demo", "run the demo generator", "generate a Metronome environment".
 
 ---
 
 ## Step 1: Ask which demo to create
 
-Use `AskUserQuestion` to ask:
-
-**Question**: "Which demo type do you want to generate?"
+Ask the user: **"Which demo type do you want to generate?"**
 **Options**:
 1. **AI Platform** — Catalog only (6 billable metrics, 6 usage products, AI Platform Standard Rate Card with per-model/per-direction pricing). No customers or usage events. Best for AI API / developer platform prospects.
 2. **Infra SaaS** — Full environment (4 metrics, 7 products, Standard Rate Card with multi-cloud pricing, 3 customers with contracts, synthetic hourly usage already ingested). Best for cloud infra / DevOps prospects.
@@ -255,11 +253,12 @@ Usage products (4) — use `pricing_group_key: ["cluster_type", "cloud_provider"
 - Network Ingress (GB)
 - Network Egress (GB)
 
-Fixed products (2):
+Fixed products:
 ```json
 {"name": "Free Trial Credits", "type": "fixed"}
-{"name": "Prepaid Commit", "type": "fixed"}
 ```
+
+Note: **do not create a second "Prepaid Commit"** — reuse the ID from AI Platform step 4.3. Capture it as `infra_prepaid_commit_id`.
 
 Composite product (1):
 ```json
@@ -514,6 +513,8 @@ Contract:
 
 ```bash
 curl -s -X POST "https://api.metronome.com/v1/customers" \
+  -H "Authorization: Bearer $METRONOME_API_KEY" \
+  -H "Content-Type: application/json" \
   -d '{"name": "Commit customer (advanced cluster)", "ingest_aliases": ["commit-customer-advanced-<RANDOM_6_DIGITS>"]}'
 ```
 
@@ -559,6 +560,8 @@ Note: `<2yr_later>` = 24 months after start_date.
 
 ```bash
 curl -s -X POST "https://api.metronome.com/v1/customers" \
+  -H "Authorization: Bearer $METRONOME_API_KEY" \
+  -H "Content-Type: application/json" \
   -d '{"name": "Commit customer (standard cluster)", "ingest_aliases": ["commit-customer-standard-<RANDOM_6_DIGITS>"]}'
 ```
 
@@ -642,7 +645,7 @@ for i in range(0, len(events), 100):
 print(f"Sent {sent} events")
 ```
 
-Run with: `python3 -I /tmp/infra_usage.py`
+Save the script to `/tmp/infra_usage.py`, then run with: `python3 -I /tmp/infra_usage.py`
 
 **Verification**: 4 billable metrics, 7 products, 1 rate card, 3 customers with contracts and usage events.
 
@@ -766,6 +769,8 @@ For Annual packages, set `recurrence_frequency: "MONTHLY"` on the recurring cred
 
 ```bash
 curl -s -X POST "https://api.metronome.com/v1/customers" \
+  -H "Authorization: Bearer $METRONOME_API_KEY" \
+  -H "Content-Type: application/json" \
   -d '{"name": "enterprise customer", "ingest_aliases": ["hybrid-seat-demo-<RANDOM_8_CHARS>"]}'
 ```
 
