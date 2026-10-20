@@ -13,6 +13,7 @@ Ask the user: **"Which demo type do you want to generate?"**
 1. **AI Platform** — Catalog only (6 billable metrics, 6 usage products, AI Platform Standard Rate Card with per-model/per-direction pricing). No customers or usage events. Best for AI API / developer platform prospects.
 2. **Infra SaaS** — Full environment (4 metrics, 7 products, Standard Rate Card with multi-cloud pricing, 3 customers with contracts, synthetic hourly usage already ingested). Best for cloud infra / DevOps prospects.
 3. **Hybrid Seat + Usage** — AI Platform catalog plus seat subscription products, hybrid rate card with AI Credits, 6 package templates, and an example contract. Best for SaaS prospects adding AI billing.
+4. **GPU Reservations** — 7 SQL billable metrics that split per-minute GPU usage into regional reservation → shared global pool → on-demand, a rate card, one customer with an A100 reservation contract and named schedules, 9 usage events, an invoice check, and a Google Sheet that walks through every event. Best for GPU cloud / neocloud prospects (e.g., Crusoe, CoreWeave) with reserved + on-demand capacity.
 
 ---
 
@@ -23,6 +24,8 @@ Ask the user: **"Which demo type do you want to generate?"**
 - Whether to clear the sandbox first (recommend yes if re-running)
 
 **Hybrid only**: No additional inputs required — the AI Credits custom pricing unit is created automatically via API in step 4.1.
+
+**GPU Reservations only**: The Metronome account must have **named schedules** enabled (setup checks this first and stops before creating anything if it's off; ask Metronome to enable it). Clearing is optional: it only adds new objects and uses the IDs it creates, so it is safe to run in a sandbox that already has other demos. The Google Sheet step needs the Google Drive tools (`create_google_drive_sheet`, `add_sheet_to_google_drive_spreadsheet`, `format_google_drive_sheet`, `get_google_drive_sheet_in_spreadsheet`); if they aren't available, skip 4.4 and share the `/tmp/gpu_sheet_*.json` payloads instead.
 
 ---
 
@@ -948,15 +951,600 @@ Save to `/tmp/hybrid_usage.py`, then run with: `python3 -I /tmp/hybrid_usage.py`
 
 ---
 
+### GPU Reservations
+
+Models a GPU cloud that sells reserved capacity per region plus a shared global pool, and bills anything above the reservations on-demand. Every minute of usage is split three ways by SQL billable metrics:
+
+1. **Regional reservation**: each zone's own reservation covers its usage first.
+2. **Global pool**: overflow draws from a shared pool in fixed order: us-east → us-west → us-central (highest on-demand rate first).
+3. **On-demand**: whatever is left bills at the zone's on-demand rate.
+
+Reservations live on the contract as **named schedules** (`/contracts/updateNamedSchedule`), and the SQL reads them with `scheduleValue(...)` at each event's timestamp, so mid-contract or backdated reservation changes re-rate automatically. No PRAGMAs are needed.
+
+**What gets created** (new objects every run; nothing is reused except an existing `A100 Reservation` subscription product):
+- 7 SQL billable metrics on `instance` events (`properties.sku`, `properties.zone`, `properties.billable_value` = GPUs running)
+  - `GPU On-Demand — us-east` / `us-west` / `us-central`
+  - `GPU Reserved — us-east` / `us-west` / `us-central` / `global`
+  - Output is GPU-seconds (per-minute GPU count × 60)
+- 7 usage products (one per metric): `pricing_group_key: ["sku"]`, `presentation_group_key: ["sku", "zone"]`, quantity conversion ÷ 3,600 → GPU-hours
+- `A100 Reservation` subscription product (reused if one already exists)
+- "GPU Reservations Rate Card" with 8 rates starting the first day of last month:
+  - On-demand A100: us-east $10/GPU-hr, us-west $5/GPU-hr, us-central $3/GPU-hr
+  - All 4 reserved products: $0 (they exist so the invoice shows reservation use)
+  - A100 Reservation: $1,000 per GPU per month
+- 1 customer `GPU Reservations Demo <6 digits>` with ingest alias `gpu-reservations-demo-<6 digits>`
+- 1 contract starting the first day of last month: A100 Reservation subscription × 8, billed monthly in advance
+- 4 named schedules on the contract: `us-east-reserved-instance` = 2, `us-west-reserved-instance` = 2, `us-central-reserved-instance` = 4 (properties `{sku, zone}`), and `global-reserved-instance` = 2 (properties `{sku}`)
+- 9 `instance` events at 10:00, 10:01 and 10:02 UTC on the first day of the current month, one per zone per minute:
+  - **10:00**: east 5, west 3, central 4. East's overflow uses the whole global pool, so west spills to on-demand.
+  - **10:01**: east 3, west 4, central 6. East and west split the pool, so central spills to on-demand.
+  - **10:02**: east 1, west 2, central 7. East is under its reservation, and the pool reaches central.
+- A Google Sheet (Overview, Events, Allocation, Invoice tabs) with live formulas that reproduce the waterfall and reconcile against the Metronome invoice
+
+#### 4.1 Save the script
+
+Save this exactly to `/tmp/gpu_reservations_demo.py`:
+
+```python
+"""GPU Reservations demo for Metronome: regional + global GPU reservations with on-demand overflow.
+
+  METRONOME_API_KEY=... python3 -I /tmp/gpu_reservations_demo.py setup   # build catalog, customer, contract, schedules, 9 events
+  METRONOME_API_KEY=... python3 -I /tmp/gpu_reservations_demo.py verify  # poll the draft invoice and compare to expected
+  python3 -I /tmp/gpu_reservations_demo.py sheet                         # write Google Sheet payloads to /tmp/gpu_sheet_*.json
+  METRONOME_API_KEY=... python3 -I /tmp/gpu_reservations_demo.py cleanup # archive only what the last setup created
+"""
+import datetime as dt
+import json
+import os
+import random
+import sys
+import time
+import urllib.error
+import urllib.request
+
+API = "https://api.metronome.com"
+STATE = "/tmp/gpu_reservations_demo.json"
+SKU = "A100"
+ZONES = ["us-east", "us-west", "us-central"]
+RESERVATIONS = {"us-east": 2, "us-west": 2, "us-central": 4, "global": 2}
+ON_DEMAND_CENTS = {"us-east": 1000, "us-west": 500, "us-central": 300}
+RESERVATION_PRODUCT = "A100 Reservation"
+RESERVATION_FEE_CENTS = 100000
+RESERVATION_QTY = 8
+# (minute offset from 10:00 UTC on the 1st of the current month, GPUs reported per zone)
+USAGE = [
+    (0, {"us-east": 5, "us-west": 3, "us-central": 4}),  # east overflow uses the whole global pool
+    (1, {"us-east": 3, "us-west": 4, "us-central": 6}),  # east + west split the pool; central spills
+    (2, {"us-east": 1, "us-west": 2, "us-central": 7}),  # east under reservation; pool reaches central
+]
+
+INNER = """  FROM (
+    SELECT
+      SUM(CAST(properties.billable_value AS DOUBLE)) AS gpu_count,
+      properties.sku AS sku,
+      properties.zone AS zone,
+      DATE_TRUNC('minute', timestamp) AS ts
+    FROM events
+    WHERE event_type = 'instance'
+    GROUP BY sku, zone, ts
+  )"""
+
+
+def overage_col(zone):
+    short = zone.split("-")[1]
+    return (f"    SUM(CASE WHEN zone = '{zone}' THEN GREATEST(0, gpu_count - COALESCE(scheduleValue("
+            f"'{zone}-reserved-instance', {{ sku: sku, zone: zone }}, ts), 0)) ELSE 0 END) AS {short}_overage,")
+
+
+def pooled_sql(zones, expr, out_col, label):
+    cols = "\n".join(overage_col(z) for z in zones)
+    return (f"SELECT\n  SUM({expr} * 60) AS {out_col},\n  '{label}' AS zone,\n  sku\nFROM (\n  SELECT\n    sku,\n    ts,\n"
+            f"{cols}\n    MAX(COALESCE(scheduleValue('global-reserved-instance', {{ sku: sku }}, ts), 0)) AS global_reserved\n"
+            f"{INNER}\n  GROUP BY sku, ts\n)\nGROUP BY sku\n")
+
+
+def regional_reserved_sql(zone):
+    return (f"SELECT\n  SUM(LEAST(gpu_count, COALESCE(scheduleValue('{zone}-reserved-instance', {{ sku: sku, zone: zone }}, ts), 0)) * 60)"
+            f" AS reserved_gpu_seconds,\n  '{zone}' AS zone,\n  sku\nFROM (\n  SELECT\n"
+            f"    SUM(CAST(properties.billable_value AS DOUBLE)) AS gpu_count,\n    properties.sku AS sku,\n"
+            f"    properties.zone AS zone,\n    DATE_TRUNC('minute', timestamp) AS ts\n  FROM events\n"
+            f"  WHERE event_type = 'instance' AND properties.zone = '{zone}'\n  GROUP BY sku, zone, ts\n)\nGROUP BY sku\n")
+
+
+METRICS = [
+    ("GPU On-Demand — us-east", ["gpu", "on-demand"],
+     pooled_sql(["us-east"], "GREATEST(0, east_overage - global_reserved)", "on_demand_gpu_seconds", "us-east")),
+    ("GPU On-Demand — us-west", ["gpu", "on-demand"],
+     pooled_sql(["us-east", "us-west"], "GREATEST(0, west_overage - GREATEST(0, global_reserved - east_overage))",
+                "on_demand_gpu_seconds", "us-west")),
+    ("GPU On-Demand — us-central", ["gpu", "on-demand"],
+     pooled_sql(ZONES, "GREATEST(0, central_overage - GREATEST(0, global_reserved - east_overage - west_overage))",
+                "on_demand_gpu_seconds", "us-central")),
+    ("GPU Reserved — us-east", ["gpu", "reserved"], regional_reserved_sql("us-east")),
+    ("GPU Reserved — us-west", ["gpu", "reserved"], regional_reserved_sql("us-west")),
+    ("GPU Reserved — us-central", ["gpu", "reserved"], regional_reserved_sql("us-central")),
+    ("GPU Reserved — global", ["gpu", "reserved"],
+     pooled_sql(ZONES, "LEAST(global_reserved, east_overage + west_overage + central_overage)", "reserved_gpu_seconds", "global")),
+]
+
+
+def call(method, path, body=None, fatal=True):
+    req = urllib.request.Request(
+        f"{API}{path}",
+        data=json.dumps(body).encode() if body is not None else None,
+        headers={"Authorization": f"Bearer {os.environ['METRONOME_API_KEY']}", "Content-Type": "application/json"},
+        method=method,
+    )
+    try:
+        with urllib.request.urlopen(req) as resp:
+            raw = resp.read()
+            return json.loads(raw) if raw else {}
+    except urllib.error.HTTPError as e:
+        detail = e.read().decode()
+        if not fatal:
+            return {"error": e.code, "detail": detail}
+        hint = f"\nObjects created so far are recorded in {STATE}; run `cleanup` to archive them." if os.path.exists(STATE) else ""
+        sys.exit(f"FAIL {method} {path}: {e.code} {detail}{hint}")
+
+
+def save(state):
+    with open(STATE, "w") as f:
+        json.dump(state, f, indent=2)
+
+
+def preflight():
+    """Named schedules are enabled per Metronome account; fail before creating anything if they're off."""
+    zero = "00000000-0000-0000-0000-000000000000"
+    r = call("POST", "/v1/contracts/getNamedSchedule",
+             {"customer_id": zero, "contract_id": zero, "schedule_name": "preflight-check"}, fatal=False)
+    if "NAMED_SCHEDULES" in r.get("detail", ""):
+        sys.exit("STOP: named schedules are not enabled on this Metronome account (getNamedSchedule → "
+                 "'Resource not found: NAMED_SCHEDULES'). Ask Metronome to enable named schedules, or use another "
+                 "sandbox. Nothing was created.")
+    if r.get("error") == 401:
+        sys.exit("STOP: the API key was rejected (401). Nothing was created.")
+
+
+def iso(t):
+    return t.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def allocate(counts):
+    """Same order of operations as the SQL: regional first, then the global pool east → west → central."""
+    left = RESERVATIONS["global"]
+    out = {}
+    for zone in ZONES:
+        u = counts[zone]
+        reg = min(u, RESERVATIONS[zone])
+        over = u - reg
+        g = min(over, left)
+        out[zone] = {"reported": u, "regional": reg, "overflow": over, "pool_left": left, "global": g, "on_demand": over - g}
+        left -= g
+    return out
+
+
+def find_subscription_product(name):
+    path = "/v1/contract-pricing/products/list"
+    while True:
+        r = call("POST", path, {"archive_filter": "NOT_ARCHIVED"})
+        for p in r.get("data", []):
+            if p.get("type") == "SUBSCRIPTION" and p["current"]["name"] == name:
+                return p["id"]
+        if not r.get("next_page"):
+            return None
+        path = f"/v1/contract-pricing/products/list?next_page={r['next_page']}"
+
+
+def setup():
+    now = dt.datetime.now(dt.timezone.utc)
+    month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    contract_start = (month_start - dt.timedelta(days=1)).replace(day=1)
+    usage_base = month_start + dt.timedelta(hours=10)
+    if now < usage_base + dt.timedelta(minutes=3):
+        sys.exit(f"Usage is timestamped {iso(usage_base)}; re-run after {iso(usage_base + dt.timedelta(minutes=3))}.")
+    preflight()
+
+    suffix = f"{random.randint(0, 999999):06d}"
+    alias = f"gpu-reservations-demo-{suffix}"
+
+    events, allocation = [], []
+    totals = {name: 0 for name, _, _ in METRICS}
+    for offset, counts in USAGE:
+        ts = iso(usage_base + dt.timedelta(minutes=offset))
+        for zone in ZONES:
+            events.append({"transaction_id": f"{alias}-{ts}-{zone}-{SKU}", "customer_id": alias, "event_type": "instance",
+                           "timestamp": ts, "properties": {"sku": SKU, "zone": zone, "billable_value": counts[zone]}})
+        for zone, a in allocate(counts).items():
+            allocation.append({"minute": ts, "zone": zone, **a})
+            totals[f"GPU Reserved — {zone}"] += a["regional"]
+            totals["GPU Reserved — global"] += a["global"]
+            totals[f"GPU On-Demand — {zone}"] += a["on_demand"]
+    expected = {}
+    for name, minutes in totals.items():
+        zone = name.split("— ")[1]
+        cents = ON_DEMAND_CENTS[zone] if "On-Demand" in name else 0
+        expected[name] = {"gpu_minutes": minutes, "gpu_hours": minutes / 60, "unit_price_cents": cents,
+                          "amount_cents": minutes / 60 * cents}
+
+    # Saved after every create so a failed run can be cleaned up with `cleanup`.
+    state = {
+        "customer_name": f"GPU Reservations Demo {suffix}", "customer_id": None, "alias": alias, "contract_id": None,
+        "rate_card_id": None, "reservation_product_id": None, "reservation_product_created": False,
+        "metric_ids": {}, "product_ids": {}, "contract_start": iso(contract_start), "invoice_period_start": iso(month_start),
+        "events": events, "allocation": allocation, "expected": expected, "invoice": None, "setup_complete": False,
+    }
+    save(state)
+
+    for name, tags, sql in METRICS:
+        state["metric_ids"][name] = call("POST", "/v1/billable-metrics/create", {"name": name, "sql": sql})["data"]["id"]
+        save(state)
+        print(f"Metric   {name}: {state['metric_ids'][name]}")
+    for name, tags, _ in METRICS:
+        state["product_ids"][name] = call("POST", "/v1/contract-pricing/products/create", {
+            "name": name,
+            "type": "usage",
+            "billable_metric_id": state["metric_ids"][name],
+            "pricing_group_key": ["sku"],
+            "presentation_group_key": ["sku", "zone"],
+            "quantity_conversion": {"operation": "divide", "conversion_factor": 3600, "name": "GPU-seconds to GPU-hours"},
+            "tags": tags,
+        })["data"]["id"]
+        save(state)
+        print(f"Product  {name}: {state['product_ids'][name]}")
+
+    reservation_id = find_subscription_product(RESERVATION_PRODUCT)
+    if reservation_id:
+        print(f"Product  {RESERVATION_PRODUCT}: {reservation_id} (reused)")
+    else:
+        reservation_id = call("POST", "/v1/contract-pricing/products/create",
+                              {"name": RESERVATION_PRODUCT, "type": "subscription", "tags": ["gpu", "reservation"]})["data"]["id"]
+        state["reservation_product_created"] = True
+        print(f"Product  {RESERVATION_PRODUCT}: {reservation_id}")
+    state["reservation_product_id"] = reservation_id
+    save(state)
+
+    rate_card_id = call("POST", "/v1/contract-pricing/rate-cards/create", {
+        "name": "GPU Reservations Rate Card",
+        "description": "Regional + global GPU reservations with on-demand overflow. Usage in GPU-hours.",
+    })["data"]["id"]
+    state["rate_card_id"] = rate_card_id
+    save(state)
+    rates = []
+    for name, _, _ in METRICS:
+        zone = name.split("— ")[1]
+        price = ON_DEMAND_CENTS[zone] if "On-Demand" in name else 0
+        rates.append({"product_id": state["product_ids"][name], "starting_at": iso(contract_start), "entitled": True,
+                      "rate_type": "FLAT", "price": price, "pricing_group_values": {"sku": SKU}})
+    rates.append({"product_id": reservation_id, "starting_at": iso(contract_start), "entitled": True,
+                  "rate_type": "FLAT", "price": RESERVATION_FEE_CENTS, "billing_frequency": "MONTHLY"})
+    call("POST", "/v1/contract-pricing/rate-cards/addRates", {"rate_card_id": rate_card_id, "rates": rates})
+    print(f"RateCard GPU Reservations Rate Card: {rate_card_id} ({len(rates)} rates)")
+
+    state["customer_id"] = call("POST", "/v1/customers", {"name": state["customer_name"], "ingest_aliases": [alias]})["data"]["id"]
+    save(state)
+    print(f"Customer {state['customer_name']}: {state['customer_id']} (alias {alias})")
+
+    state["contract_id"] = call("POST", "/v1/contracts/create", {
+        "customer_id": state["customer_id"],
+        "name": "GPU Reservations",
+        "starting_at": iso(contract_start),
+        "rate_card_id": rate_card_id,
+        "usage_statement_schedule": {"frequency": "MONTHLY", "day": "FIRST_OF_MONTH"},
+        "subscriptions": [{
+            "collection_schedule": "ADVANCE",
+            "proration": {"is_prorated": True, "invoice_behavior": "BILL_IMMEDIATELY"},
+            "subscription_rate": {"product_id": reservation_id, "billing_frequency": "MONTHLY"},
+            "initial_quantity": RESERVATION_QTY,
+        }],
+    })["data"]["id"]
+    save(state)
+    print(f"Contract {state['contract_id']}")
+
+    for key, value in RESERVATIONS.items():
+        props = {"sku": SKU} if key == "global" else {"sku": SKU, "zone": key}
+        call("POST", "/v1/contracts/updateNamedSchedule", {
+            "customer_id": state["customer_id"], "contract_id": state["contract_id"],
+            "schedule_name": f"{key}-reserved-instance", "properties": props,
+            "starting_at": iso(contract_start), "value": value,
+        })
+        print(f"Schedule {key}-reserved-instance {props} = {value}")
+
+    call("POST", "/v1/ingest", events)
+    print(f"Ingested {len(events)} instance events at {events[0]['timestamp']} – {events[-1]['timestamp']}")
+    state["setup_complete"] = True
+    save(state)
+    print(f"State written to {STATE}")
+
+
+def cleanup():
+    """Archive only the objects recorded in the state file (never anything else in the account)."""
+    with open(STATE) as f:
+        state = json.load(f)
+    if state.get("contract_id"):
+        print("Contract", call("POST", "/v1/contracts/archive", {"customer_id": state["customer_id"],
+              "contract_id": state["contract_id"], "void_invoices": True}, fatal=False) or "archived")
+    if state.get("customer_id"):
+        call("POST", "/v1/customers/update", {"id": state["customer_id"], "ingest_aliases": []}, fatal=False)
+        print("Customer", call("POST", "/v1/customers/archive", {"id": state["customer_id"]}, fatal=False) or "archived")
+    if state.get("rate_card_id"):
+        print("Rate card", call("POST", "/v1/contract-pricing/rate-cards/archive", {"id": state["rate_card_id"]}, fatal=False) or "archived")
+    product_ids = list(state["product_ids"].values())
+    if state.get("reservation_product_created"):
+        product_ids.append(state["reservation_product_id"])
+    failed = []
+    for pid in product_ids:
+        if "error" in call("POST", "/v1/contract-pricing/products/archive", {"product_id": pid}, fatal=False):
+            failed.append(f"product {pid}")
+    for mid in state["metric_ids"].values():
+        if "error" in call("POST", "/v1/billable-metrics/archive", {"id": mid}, fatal=False):
+            failed.append(f"metric {mid}")
+    print(f"Archived {len(product_ids)} products and {len(state['metric_ids'])} billable metrics"
+          + (f"; FAILED: {', '.join(failed)}" if failed else ""))
+    os.rename(STATE, STATE + ".archived")
+    print(f"Moved {STATE} to {STATE}.archived")
+
+
+def verify():
+    with open(STATE) as f:
+        state = json.load(f)
+    if not state.get("setup_complete"):
+        sys.exit("STOP: setup did not finish. Run `cleanup` to archive the partial objects, fix the cause, then re-run setup.")
+    deadline = time.time() + 300
+    while True:
+        lines = {}
+        for inv in call("GET", f"/v1/customers/{state['customer_id']}/invoices?status=DRAFT").get("data", []):
+            if inv["start_timestamp"].startswith(state["invoice_period_start"][:10]):
+                lines = {li["name"]: li for li in inv.get("line_items", [])}
+                state["invoice"] = {"id": inv["id"], "total_cents": inv["total"], "line_items": list(lines.values())}
+        ok = all(n in lines and abs(float(lines[n]["quantity"]) - e["gpu_hours"]) < 1e-9 for n, e in state["expected"].items())
+        if ok or time.time() > deadline:
+            break
+        print("Waiting for usage to rate onto the draft invoice...")
+        time.sleep(15)
+
+    print(f"\n{'Line item':30} {'expected hrs':>12} {'invoice hrs':>12} {'invoice $':>10}  result")
+    matches = 0
+    for name, e in state["expected"].items():
+        li = lines.get(name)
+        got = float(li["quantity"]) if li else None
+        match = got is not None and abs(got - e["gpu_hours"]) < 1e-9
+        matches += match
+        print(f"{name:30} {e['gpu_hours']:12.6f} {got if got is not None else float('nan'):12.6f} "
+              f"{(float(li['total']) / 100) if li else 0:10.4f}  {'MATCH' if match else 'MISMATCH'}")
+    fee = lines.get(RESERVATION_PRODUCT)
+    fee_ok = bool(fee) and float(fee["quantity"]) == RESERVATION_QTY and float(fee["unit_price"]) == RESERVATION_FEE_CENTS
+    print(f"{RESERVATION_PRODUCT:30} {'qty ' + str(RESERVATION_QTY):>12} {('qty ' + str(fee['quantity'])) if fee else '—':>12} "
+          f"{(float(fee['total']) / 100) if fee else 0:10.2f}  {'MATCH' if fee_ok else 'MISMATCH'}")
+    with open(STATE, "w") as f:
+        json.dump(state, f, indent=2)
+    print(f"\n{matches}/{len(state['expected'])} usage lines match; reservation fee {'matches' if fee_ok else 'DOES NOT match'}")
+    sys.exit(0 if matches == len(state["expected"]) and fee_ok else 1)
+
+
+def sheet():
+    with open(STATE) as f:
+        state = json.load(f)
+    V = lambda v: {"value": str(v)}
+    F = lambda f: {"formula": f}
+    fee_usd = RESERVATION_FEE_CENTS / 100
+
+    overview = [
+        ["GPU reservations: billing explainer"],
+        [f"Metronome customer {state['customer_name']} ({state['alias']}) · contract {state['contract_id']} · GPU Reservations Rate Card"],
+        [""],
+        ["Reservation (named schedule on contract)", "Properties", "A100s reserved", "Starts"],
+        ["us-east-reserved-instance", "sku=A100, zone=us-east", str(RESERVATIONS["us-east"]), state["contract_start"]],
+        ["us-west-reserved-instance", "sku=A100, zone=us-west", str(RESERVATIONS["us-west"]), state["contract_start"]],
+        ["us-central-reserved-instance", "sku=A100, zone=us-central", str(RESERVATIONS["us-central"]), state["contract_start"]],
+        ["global-reserved-instance", "sku=A100", str(RESERVATIONS["global"]), state["contract_start"]],
+        [""],
+        ["Product", "Rate (USD per GPU-hour)", "Metric output", "Invoice unit"],
+        ["GPU On-Demand — us-east", str(ON_DEMAND_CENTS["us-east"] / 100), "GPU-seconds", "÷ 3,600 → GPU-hours"],
+        ["GPU On-Demand — us-west", str(ON_DEMAND_CENTS["us-west"] / 100), "GPU-seconds", "÷ 3,600 → GPU-hours"],
+        ["GPU On-Demand — us-central", str(ON_DEMAND_CENTS["us-central"] / 100), "GPU-seconds", "÷ 3,600 → GPU-hours"],
+        ["GPU Reserved — us-east / us-west / us-central / global", "0", "GPU-seconds", "÷ 3,600 → GPU-hours"],
+        [f"{RESERVATION_PRODUCT} (subscription)", f"${fee_usd:,.0f} per GPU per month × {RESERVATION_QTY}", "—", "—"],
+        [""],
+        ["How each minute is billed"],
+        ["1. Every instance event is truncated to its minute and summed per sku + zone: SUM(billable_value) after DATE_TRUNC('minute')."],
+        ["2. The zone's own regional reservation covers usage first."],
+        ["3. Overflow draws from the shared global pool in a fixed order: us-east → us-west → us-central (highest on-demand rate first)."],
+        ["4. Whatever is left bills on-demand at that zone's rate."],
+        ["5. Each minute's GPU count × 60 = GPU-seconds (metric output); the product divides by 3,600 → GPU-hours on the invoice. Nothing is rounded until the invoice."],
+        [""],
+        ["Tabs"],
+        ["Events — the 9 instance events as ingested. Allocation — the per-minute waterfall as live formulas. Invoice — computed lines vs. the Metronome draft invoice."],
+        ["Edit billable_value on Events (or a reservation above) and Allocation + Invoice recalculate; the result column flags any drift from what Metronome billed."],
+    ]
+
+    events = [["transaction_id", "timestamp", "customer_id", "event_type", "sku", "zone", "billable_value", "minute (DATE_TRUNC)"]]
+    for e in state["events"]:
+        events.append([e["transaction_id"], e["timestamp"], e["customer_id"], e["event_type"], e["properties"]["sku"],
+                       e["properties"]["zone"], str(e["properties"]["billable_value"]), ""])
+    n = len(state["events"])
+    last = n + 1
+
+    ev, al = "Events", "Allocation"
+    res_cell = {"us-east": "Overview!$C$5", "us-west": "Overview!$C$6", "us-central": "Overview!$C$7"}
+    ops = [{"type": "update_cells", "sheet_title": ev, "start_row": 1, "start_col": 7,
+            "rows": [[F(f'=LEFT(B{r},16)&":00Z"')] for r in range(2, last + 1)]}]
+
+    hdr = ["minute (DATE_TRUNC)", "zone", "events_in_minute", "gpus_reported = SUM(billable_value)", "regional_reservation",
+           "covered_by_regional = MIN(reported, reservation)", "overflow = reported − regional",
+           "global_pool_left (east → west → central)", "covered_by_global = MIN(overflow, pool_left)",
+           "billed_on_demand = overflow − global", "explanation"]
+    rows = [[V(h) for h in hdr]]
+    for k, a in enumerate(state["allocation"]):
+        r = k + 2
+        pool = "=Overview!$C$8" if a["zone"] == "us-east" else f"=H{r-1}-I{r-1}"
+        rows.append([
+            V(a["minute"]), V(a["zone"]),
+            F(f"=COUNTIFS({ev}!$H$2:$H${last},$A{r},{ev}!$F$2:$F${last},$B{r})"),
+            F(f"=SUMIFS({ev}!$G$2:$G${last},{ev}!$H$2:$H${last},$A{r},{ev}!$F$2:$F${last},$B{r})"),
+            F(f"={res_cell[a['zone']]}"), F(f"=MIN(D{r},E{r})"), F(f"=D{r}-F{r}"), F(pool),
+            F(f"=MIN(G{r},H{r})"), F(f"=G{r}-I{r}"),
+            F(f'=D{r}&" reported · regional reservation of "&E{r}&" covers "&F{r}&IF(G{r}=0," · no overflow"," · "&G{r}'
+              f'&" overflow · global pool has "&H{r}&" left and covers "&I{r}&" · "&J{r}&" billed on-demand")'),
+        ])
+    alast = len(state["allocation"]) + 1
+    ops.append({"type": "update_cells", "sheet_title": al, "start_row": 0, "start_col": 0, "rows": rows})
+
+    inv_lines = {li["name"]: li for li in (state.get("invoice") or {}).get("line_items", [])}
+    ihdr = ["line_item", "gpu_minutes", "gpu_seconds (metric output)", "gpu_hours (÷ 3,600)", "rate_usd_per_gpu_hr",
+            "expected_usd", "metronome_invoice_qty", "metronome_invoice_usd", "result"]
+    rate_cell = {"us-east": "=Overview!$B$11", "us-west": "=Overview!$B$12", "us-central": "=Overview!$B$13"}
+    irows = [[V(h) for h in ihdr]]
+    for k, (name, _, _) in enumerate(METRICS[3:] + METRICS[:3]):
+        r = k + 2
+        zone = name.split("— ")[1]
+        if name == "GPU Reserved — global":
+            mins = f"=SUM({al}!$I$2:$I${alast})"
+        else:
+            col = "J" if "On-Demand" in name else "F"
+            mins = f'=SUMIFS({al}!${col}$2:${col}${alast},{al}!$B$2:$B${alast},"{zone}")'
+        li = inv_lines.get(name)
+        irows.append([
+            V(name), F(mins), F(f"=B{r}*60"), F(f"=C{r}/3600"), F(rate_cell[zone] if "On-Demand" in name else "=0"),
+            F(f"=D{r}*E{r}"),
+            F(f"={float(li['quantity'])!r}") if li else V("not on invoice"),
+            F(f"={float(li['total']) / 100!r}") if li else V(""),
+            F(f'=IF(ABS(D{r}-G{r})<0.000001,"✓ Match","✗ Mismatch")'),
+        ])
+    fee = inv_lines.get(RESERVATION_PRODUCT)
+    irows += [
+        [V("")],
+        [V("Total GPU-minutes reported by events"), F(f"=SUM({ev}!$G$2:$G${last})")],
+        [V("Total GPU-minutes across the 7 lines"), F("=SUM(B2:B8)")],
+        [V("Every GPU-minute accounted for exactly once?"), F('=IF(B10=B11,"✓ Yes","✗ No")')],
+        [V("")],
+        [V(f"{RESERVATION_PRODUCT} (subscription, not usage-derived)"), V(""), V(""), V(""), V(f"{fee_usd:,.0f} per GPU / month"),
+         V(""), V(fee["quantity"] if fee else ""), F(f"={float(fee['total']) / 100!r}") if fee else V(""), V("")],
+        [V("On-demand total"), V(""), V(""), V(""), V(""), F("=SUM(F6:F8)"), V(""), F("=SUM(H6:H8)"), V("")],
+    ]
+    ops.append({"type": "update_cells", "sheet_title": "Invoice", "start_row": 0, "start_col": 0, "rows": irows})
+
+    for tab, ncol in [(ev, 8), (al, 11), ("Invoice", 9)]:
+        ops.append({"type": "format_cells", "sheet_title": tab, "start_row": 0, "end_row": 1, "start_col": 0, "end_col": ncol,
+                    "bold": True, "background_color": "#E8F0FE", "wrap_strategy": "WRAP", "vertical_alignment": "TOP"})
+        ops.append({"type": "freeze", "sheet_title": tab, "frozen_row_count": 1})
+    ops += [
+        {"type": "format_cells", "sheet_title": al, "start_row": 1, "end_row": alast, "start_col": 9, "end_col": 10,
+         "bold": True, "background_color": "#EEEBFA"},
+        {"type": "format_cells", "sheet_title": "Invoice", "start_row": 1, "end_row": 8, "start_col": 3, "end_col": 4, "number_format": "0.000000"},
+        {"type": "format_cells", "sheet_title": "Invoice", "start_row": 1, "end_row": 8, "start_col": 6, "end_col": 7, "number_format": "0.000000"},
+        {"type": "format_cells", "sheet_title": "Invoice", "start_row": 1, "end_row": 16, "start_col": 5, "end_col": 6, "number_format": "$0.0000"},
+        {"type": "format_cells", "sheet_title": "Invoice", "start_row": 1, "end_row": 16, "start_col": 7, "end_col": 8, "number_format": "$0.0000"},
+        {"type": "format_cells", "sheet_title": "Overview", "start_row": 0, "end_row": 1, "start_col": 0, "end_col": 1, "bold": True, "font_size": 14},
+        {"type": "format_cells", "sheet_title": "Overview", "start_row": 3, "end_row": 4, "start_col": 0, "end_col": 4, "bold": True, "background_color": "#E8F0FE"},
+        {"type": "format_cells", "sheet_title": "Overview", "start_row": 9, "end_row": 10, "start_col": 0, "end_col": 4, "bold": True, "background_color": "#E8F0FE"},
+        {"type": "format_cells", "sheet_title": "Overview", "start_row": 16, "end_row": 17, "start_col": 0, "end_col": 1, "bold": True},
+        {"type": "format_cells", "sheet_title": "Overview", "start_row": 23, "end_row": 24, "start_col": 0, "end_col": 1, "bold": True},
+        {"type": "resize_dimension", "sheet_title": "Overview", "dimension": "COLUMNS", "start_index": 0, "end_index": 1, "pixel_size": 380},
+        {"type": "resize_dimension", "sheet_title": "Overview", "dimension": "COLUMNS", "start_index": 1, "end_index": 4, "pixel_size": 220},
+        {"type": "resize_dimension", "sheet_title": ev, "dimension": "COLUMNS", "start_index": 0, "end_index": 1, "pixel_size": 420},
+        {"type": "resize_dimension", "sheet_title": ev, "dimension": "COLUMNS", "start_index": 1, "end_index": 8, "pixel_size": 170},
+        {"type": "resize_dimension", "sheet_title": al, "dimension": "COLUMNS", "start_index": 0, "end_index": 10, "pixel_size": 150},
+        {"type": "resize_dimension", "sheet_title": al, "dimension": "COLUMNS", "start_index": 10, "end_index": 11, "pixel_size": 560},
+        {"type": "resize_dimension", "sheet_title": "Invoice", "dimension": "COLUMNS", "start_index": 0, "end_index": 1, "pixel_size": 340},
+        {"type": "resize_dimension", "sheet_title": "Invoice", "dimension": "COLUMNS", "start_index": 1, "end_index": 9, "pixel_size": 150},
+    ]
+
+    payloads = {
+        "/tmp/gpu_sheet_title.txt": f"GPU Reservations Billing Explainer — {state['customer_name']}",
+        "/tmp/gpu_sheet_overview.json": json.dumps(overview, ensure_ascii=False),
+        "/tmp/gpu_sheet_events.json": json.dumps(events, ensure_ascii=False),
+        "/tmp/gpu_sheet_ops.json": json.dumps(ops, ensure_ascii=False),
+    }
+    for path, content in payloads.items():
+        with open(path, "w") as f:
+            f.write(content)
+        print(f"Wrote {path} ({len(content):,} chars)")
+    if not state.get("invoice"):
+        print("WARNING: no invoice in state — run `verify` first so the Invoice tab has Metronome's numbers.")
+
+
+if __name__ == "__main__":
+    {"setup": setup, "verify": verify, "sheet": sheet, "cleanup": cleanup}[sys.argv[1] if len(sys.argv) > 1 else "setup"]()
+```
+
+#### 4.2 Run setup
+
+```bash
+METRONOME_API_KEY="<METRONOME_API_KEY>" python3 -I /tmp/gpu_reservations_demo.py setup
+```
+
+Before creating anything, setup checks that named schedules are enabled on the account. If they aren't, it stops with `STOP: named schedules are not enabled…`. Report that to the user and stop.
+
+The script prints every ID it creates. It saves them after each step, together with the events and expected results, to `/tmp/gpu_reservations_demo.json`. If it stops with "re-run after …", it's the first of the month before 10:03 UTC; wait and re-run.
+
+If setup fails partway, archive exactly what it created, and nothing else in the account, before re-running:
+
+```bash
+METRONOME_API_KEY="<METRONOME_API_KEY>" python3 -I /tmp/gpu_reservations_demo.py cleanup
+```
+
+#### 4.3 Verify the invoice
+
+```bash
+METRONOME_API_KEY="<METRONOME_API_KEY>" python3 -I /tmp/gpu_reservations_demo.py verify
+```
+
+This polls the customer's current-month draft invoice (up to 5 minutes while usage rates) and compares every line to the expected values. **It must end with `7/7 usage lines match; reservation fee matches` and exit 0.** If it doesn't, stop and report the mismatched lines; don't build the sheet.
+
+Expected invoice lines (GPU-hours = GPU-minutes ÷ 60):
+- **GPU Reserved — us-east**: 5 GPU-min = 0.083333 hrs, $0
+- **GPU Reserved — us-west**: 6 GPU-min = 0.1 hrs, $0
+- **GPU Reserved — us-central**: 12 GPU-min = 0.2 hrs, $0
+- **GPU Reserved — global**: 6 GPU-min = 0.1 hrs, $0
+- **GPU On-Demand — us-east**: 1 GPU-min = 0.016667 hrs × $10 = $0.1667
+- **GPU On-Demand — us-west**: 2 GPU-min = 0.033333 hrs × $5 = $0.1667
+- **GPU On-Demand — us-central**: 3 GPU-min = 0.05 hrs × $3 = $0.15
+- **A100 Reservation**: 8 × $1,000 = $8,000
+
+The 7 usage lines total 35 GPU-minutes, which is exactly the sum of the 9 events.
+
+#### 4.4 Build the Google Sheet
+
+1. Write the sheet payloads (uses the invoice numbers saved by `verify`):
+   ```bash
+   python3 -I /tmp/gpu_reservations_demo.py sheet
+   ```
+   This writes `/tmp/gpu_sheet_title.txt`, `/tmp/gpu_sheet_overview.json`, `/tmp/gpu_sheet_events.json` and `/tmp/gpu_sheet_ops.json`. Read each file and pass its contents **verbatim** as the parameter named below.
+2. `create_google_drive_sheet` with `title` = contents of `gpu_sheet_title.txt`, `data_json` = contents of `gpu_sheet_overview.json`, `bold_header: false`. Capture `spreadsheet_id`.
+3. `format_google_drive_sheet` with `operations_json` = `[{"type":"update_sheet_properties","sheet_title":"Sheet1","title":"Overview"}]`.
+4. `add_sheet_to_google_drive_spreadsheet` three times, in this order:
+   - `sheet_title: "Events"`, `data_json` = contents of `gpu_sheet_events.json`
+   - `sheet_title: "Allocation"` (no data)
+   - `sheet_title: "Invoice"` (no data)
+5. `format_google_drive_sheet` with `operations_json` = contents of `gpu_sheet_ops.json`. This writes the Allocation and Invoice formulas and applies formatting.
+6. **Check the sheet**: `get_google_drive_sheet_in_spreadsheet` with `sheet_id: "Invoice"`.
+   - Rows 2–8 (the 7 usage lines) must each end in `✓ Match`.
+   - Row 12 must read `✓ Yes`.
+   - The `gpu_minutes` column must read 5, 6, 12, 6, 1, 2, 3.
+   - If anything shows `✗`, `#REF!`, `#VALUE!` or `#ERROR!`, report it.
+
+The sheet tabs:
+- **Overview**: the reservations (cells C5:C8) and on-demand rates (B11:B13) that the formulas read
+- **Events**: the 9 events as ingested. Column H truncates each timestamp to its minute.
+- **Allocation**: one row per zone per minute, using `COUNTIFS`/`SUMIFS` over Events, then `MIN` for regional coverage, the global pool carried east → west → central, and on-demand. It also has a plain-English explanation column.
+- **Invoice**: GPU-minutes → GPU-seconds → GPU-hours per line, the expected amount, and Metronome's invoice quantity and amount, with a Match check. It also checks that every GPU-minute is counted exactly once.
+
+You can edit a `billable_value` on Events, or a reservation on Overview, and everything recalculates. The Match column then shows how far the edit is from what Metronome actually billed.
+
+**Verification**: 7 billable metrics, 8 products, 1 rate card with 8 rates, 1 customer with a contract and 4 named schedules, 9 events, `verify` at 7/7 plus the reservation fee, and a Google Sheet whose Invoice tab is all `✓ Match`.
+
+---
+
 ## Step 5: Report results
 
 After generation, summarize what was created:
 - Count of billable metrics, products, rate cards, rates added
 - Customers and contracts (Infra SaaS)
 - Package templates and customer/contract IDs (Hybrid)
+- Customer/contract IDs, ingest alias, `verify` result, and the Google Sheet link (GPU Reservations)
 - Any errors encountered
 
-If errors occurred, surface them clearly and suggest clearing the sandbox and re-running.
+If errors occurred, surface them clearly and suggest clearing the sandbox and re-running. For GPU Reservations, suggest `cleanup` instead of a full sandbox clear. It archives only the objects that run created.
 
 ---
 
@@ -979,3 +1567,11 @@ If errors occurred, surface them clearly and suggest clearing the sandbox and re
 - Annual and monthly packaging in the same rate card; no duplication
 - The 0.8× multiplier shows contract-level discounting without touching the rate card
 - `credit_type_conversions` bridges the seat and usage currencies transparently
+
+**GPU Reservations**
+- Usage events are raw and immutable. They report GPUs running per zone per minute and never say "reserved" or "on-demand". That split is derived from the contract at rating time.
+- Reservations are named schedules on the contract, so a mid-term change (e.g. 4 → 6 GPUs from the 15th) is one API call, and Metronome re-rates from that timestamp.
+- Regional and global reservations stack in SQL: regional first, then a shared pool spent east → west → central, which is the most expensive on-demand rate first.
+- The $0 reserved lines show customers how much of their reservation they used. Reserved + global + on-demand always equals total usage (35 GPU-minutes here).
+- Precision holds until the invoice. 1 GPU-minute in us-east bills 16.67¢; nothing is rounded mid-calculation.
+- Walk through the sheet tab by tab: Events → Allocation → Invoice. Then edit an event live to show the recalculation.
